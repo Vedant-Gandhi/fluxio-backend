@@ -1,0 +1,55 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Binary files
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go specific
+*.test
+*.out
+/vendor/
+/dist/
+go.work
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database files
+*.db
+*.sqlite
+
+# Log files
+*.log
+logs/
+
+# Video and media files (for testing)
+/uploads/
+/media/
+
+# Build and temporary files
+tmp/
+temp/
+build/
+
+# Dependencies
+node_modules/
+
+# Certificate files
+*.pem
+*.key
+*.crt
+
+# Docker volumes and data
+data/
