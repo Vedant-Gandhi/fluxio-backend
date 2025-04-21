@@ -17,7 +17,7 @@ type PgSQL struct {
 
 func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
 
-	db, err := gorm.Open(postgres.Open(cfg.url), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(cfg.URL), &gorm.Config{})
 
 	if err != nil {
 		return nil, err
