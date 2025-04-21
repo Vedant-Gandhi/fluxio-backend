@@ -8,7 +8,7 @@ import (
 )
 
 type PgSQLConfig struct {
-	url string
+	URL string
 }
 
 type PgSQL struct {
