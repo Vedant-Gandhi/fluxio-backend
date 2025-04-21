@@ -36,5 +36,9 @@ func NewServer() {
 	authController := controller.NewAuthController(userService)
 	authRoute := routes.NewAuthRoute(authController)
 
-	http.NewRouter(authRoute)
+	http.NewRouter(http.RouterConfig{
+		Port:    cfg.Server.Port,
+		Address: cfg.Server.Address,
+	}, authRoute)
+
 }

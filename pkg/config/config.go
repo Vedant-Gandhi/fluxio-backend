@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port string `env:"PORT" default:"8080"`
-	Mode string `env:"MODE" default:"debug"`
+	Port    string `env:"PORT" default:"8080"`
+	Mode    string `env:"MODE" default:"debug"`
+	Address string `env:"ADDRESS" default:"localhost"`
 }
 
 type DatabaseConfig struct {

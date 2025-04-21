@@ -2,16 +2,22 @@ package http
 
 import (
 	"fluxio-backend/pkg/transport/http/routes"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
+type RouterConfig struct {
+	Address string
+	Port    string
+}
+
 type Router struct {
 	r *gin.Engine
 }
 
-func NewRouter(authRoute *routes.AuthRoute) *Router {
+func NewRouter(cfg RouterConfig, authRoute *routes.AuthRoute) *Router {
 
 	router := gin.Default()
 
@@ -28,6 +34,8 @@ func NewRouter(authRoute *routes.AuthRoute) *Router {
 
 		}
 	}
+
+	router.Run(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port))
 
 	return &Router{
 		r: router,

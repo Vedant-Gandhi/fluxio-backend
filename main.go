@@ -1,9 +1,8 @@
 package main
 
-func main() {
-	// Initialize the application
-	// app := initializeApp()
+import "fluxio-backend/pkg/server"
 
-	// Start the server
+func main() {
+	server.NewServer()
 	// app.Start()
 }
