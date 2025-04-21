@@ -12,7 +12,7 @@ type PgSQLConfig struct {
 }
 
 type PgSQL struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
@@ -27,7 +27,7 @@ func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
 	db.AutoMigrate(&tables.User{})
 
 	return &PgSQL{
-		db: db,
+		DB: db,
 	}, nil
 
 }
