@@ -26,3 +26,19 @@ func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	return string(bytes), err
 }
+
+func VerifyPassword(hashedPassword, password string) (matches bool, err error) {
+	// For long passwords, apply the same pre-hash as during creation
+	if len(password) > 72 {
+		hasher := sha256.New()
+		hasher.Write([]byte(password))
+		password = base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	}
+
+	// CompareHashAndPassword returns nil on success, or an error on failure
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+
+	matches = err == nil
+
+	return
+}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
@@ -28,9 +29,9 @@ func (u *UserRepository) CreateUser(user model.User) (id model.UserID, err error
 	result := u.db.DB.Create(&userTable)
 
 	if result.Error != nil {
+
 		// Check for duplicate key violation
-		if strings.Contains(result.Error.Error(), "unique constraint") ||
-			strings.Contains(result.Error.Error(), "duplicate key") {
+		if result.Error == gorm.ErrDuplicatedKey {
 
 			// Check which unique constraint was violated
 			if strings.Contains(result.Error.Error(), "username") {
@@ -64,11 +65,10 @@ func (u *UserRepository) CheckUserExists(id model.UserID) (exists bool, err erro
 
 	if result.Error != nil {
 		err = result.Error
-		return
 	}
 
 	// Ensure the user has not been deleted.
-	exists = !user.DeletedAt.Valid && user.ID == uuid
+	exists = result.Error != gorm.ErrRecordNotFound
 
 	return
 }
@@ -82,9 +82,51 @@ func (u *UserRepository) GetUserByID(id model.UserID) (user model.User, err erro
 		return
 	}
 
-	result := u.db.DB.First(&user, " id = ?", uuid)
+	userTable := &tables.User{}
+
+	result := u.db.DB.First(userTable, " id = ?", uuid)
 
 	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrUserNotFound
+			return
+		}
+		err = result.Error
+		return
+	}
+
+	return
+}
+
+func (u *UserRepository) GetUserByUsername(username string) (user model.User, err error) {
+
+	userTable := &tables.User{}
+
+	result := u.db.DB.First(userTable, " username = ?", username)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrUserNotFound
+			return
+		}
+		err = result.Error
+		return
+	}
+
+	return
+}
+
+func (u *UserRepository) GetUserByEmail(email string) (user model.User, err error) {
+
+	userTable := &tables.User{}
+
+	result := u.db.DB.First(userTable, " email = ?", email)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrUserNotFound
+			return
+		}
 		err = result.Error
 		return
 	}

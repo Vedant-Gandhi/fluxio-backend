@@ -42,3 +42,33 @@ func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.
 
 	return
 }
+
+func (s *UserService) Login(userData model.User, rawPassword string) (user model.User, err error) {
+
+	// Verify by username first
+	user, err = s.repo.GetUserByUsername(userData.Username)
+
+	if err == nil {
+		matches, err := fluxcrypto.VerifyPassword(user.Password, rawPassword)
+		if !matches {
+			err = fluxerrors.ErrInvalidCredentials
+		}
+
+		return user, err
+	}
+
+	// Verify by email if username not found
+	user, err = s.repo.GetUserByEmail(userData.Email)
+
+	if err == nil {
+		matches, err := fluxcrypto.VerifyPassword(user.Password, rawPassword)
+		if !matches {
+			err = fluxerrors.ErrInvalidCredentials
+		}
+
+		return user, err
+	}
+
+	return
+
+}

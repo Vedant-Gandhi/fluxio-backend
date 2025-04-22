@@ -9,13 +9,15 @@ var (
 
 var (
 	ErrUserCreationFailed = errors.New("failed to create new user")
+	ErrUserLoginFailed    = errors.New("failed to login user")
+	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
 // Repo Errors
-
 var (
 	ErrUsernameExists    = errors.New("username already exists")
 	ErrEmailExists       = errors.New("email already exists")
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrInvalidUserID     = errors.New("invalid user ID")
+	ErrUserNotFound      = errors.New("user not found")
 )
