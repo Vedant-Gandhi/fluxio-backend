@@ -6,6 +6,8 @@ import (
 	"fluxio-backend/pkg/repository/pgsql"
 	"fluxio-backend/pkg/repository/pgsql/tables"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type UserRepository struct {
@@ -44,5 +46,48 @@ func (u *UserRepository) CreateUser(user model.User) (id model.UserID, err error
 	}
 
 	id = model.UserID(userTable.ID.String())
+	return
+}
+
+func (u *UserRepository) CheckUserExists(id model.UserID) (exists bool, err error) {
+
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidUserID
+		return
+	}
+
+	user := &tables.User{}
+
+	result := u.db.DB.First(user, " id = ?", uuid)
+
+	if result.Error != nil {
+		err = result.Error
+		return
+	}
+
+	// Ensure the user has not been deleted.
+	exists = !user.DeletedAt.Valid && user.ID == uuid
+
+	return
+}
+
+func (u *UserRepository) GetUserByID(id model.UserID) (user model.User, err error) {
+
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidUserID
+		return
+	}
+
+	result := u.db.DB.First(&user, " id = ?", uuid)
+
+	if result.Error != nil {
+		err = result.Error
+		return
+	}
+
 	return
 }

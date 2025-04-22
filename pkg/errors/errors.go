@@ -4,10 +4,7 @@ import "errors"
 
 var (
 	ErrPasswordTooShort = errors.New("password too short (minimum 8 characters)")
-)
-
-var (
-	ErrPasswordFailed = errors.New("password failed to hash")
+	ErrPasswordFailed   = errors.New("password failed to hash")
 )
 
 var (
@@ -20,4 +17,5 @@ var (
 	ErrUsernameExists    = errors.New("username already exists")
 	ErrEmailExists       = errors.New("email already exists")
 	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrInvalidUserID     = errors.New("invalid user ID")
 )
