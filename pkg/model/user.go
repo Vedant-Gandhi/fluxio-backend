@@ -11,11 +11,11 @@ func (id UserID) String() string {
 }
 
 type User struct {
-	ID        UserID    `json:"id"`
+	ID        UserID    `json:"id,omitempty"`
 	Username  string    `json:"username"`
 	Password  string    `json:"-"` // Hide password in JSON responses
 	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 }
