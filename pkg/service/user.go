@@ -44,10 +44,12 @@ func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.
 	return
 }
 
-func (s *UserService) Login(userData model.User, rawPassword string) (user model.User, err error) {
+func (s *UserService) Login(userData model.User) (user model.User, err error) {
 
 	usernameEmpty := strings.EqualFold(userData.Username, "")
 	emailEmpty := strings.EqualFold(userData.Email, "")
+
+	userInputPassword := userData.Password
 
 	if usernameEmpty && emailEmpty {
 		err = fluxerrors.ErrInvalidCredentials
@@ -58,30 +60,34 @@ func (s *UserService) Login(userData model.User, rawPassword string) (user model
 	if !usernameEmpty {
 		user, err = s.repo.GetUserByUsername(userData.Username)
 
-		if err == nil {
-			matches, err := fluxcrypto.VerifyPassword(user.Password, rawPassword)
-			if !matches {
-				err = fluxerrors.ErrInvalidCredentials
-			}
-
-			return user, err
+		if err != nil {
+			return
 		}
+
 	}
 
 	// Verify by email if username not found
-	if !emailEmpty {
+	if !emailEmpty && strings.EqualFold(user.ID.String(), "") {
 		user, err = s.repo.GetUserByEmail(userData.Email)
 
-		if err == nil {
-			matches, err := fluxcrypto.VerifyPassword(user.Password, rawPassword)
-			if !matches {
-				err = fluxerrors.ErrInvalidCredentials
-			}
-
-			return user, err
+		if err != nil {
+			return
 		}
 
 	}
+
+	if strings.EqualFold(user.ID.String(), "") {
+		err = fluxerrors.ErrUserNotFound
+		return
+	}
+
+	// Check password if user found.
+	matches, err := fluxcrypto.VerifyPassword(user.Password, userInputPassword)
+	if !matches {
+		err = fluxerrors.ErrInvalidCredentials
+	}
+
+	return user, err
 
 	return
 }

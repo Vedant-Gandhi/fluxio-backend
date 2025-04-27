@@ -1,6 +1,7 @@
 package controller
 
 import (
+	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
@@ -19,14 +20,14 @@ func NewAuthController(userService *service.UserService) *AuthController {
 	}
 }
 
-type rawUserRequest struct {
+type userRegisterRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 }
 
 func (a *AuthController) RegisterUser(c *gin.Context) {
-	var rawUser rawUserRequest
+	var rawUser userRegisterRequest
 
 	if err := c.ShouldBindJSON(&rawUser); err != nil {
 		response.Error(c, response.StatusBadRequest, "Invalid request payload", "The payload is not valid.")
@@ -59,4 +60,52 @@ func (a *AuthController) RegisterUser(c *gin.Context) {
 			"id": id,
 		})
 
+}
+
+type userLoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password" binding:"required"`
+	Email    string `json:"email"`
+}
+
+func (a *AuthController) LoginUser(c *gin.Context) {
+	var loginData userLoginRequest
+	if err := c.ShouldBindJSON(&loginData); err != nil {
+		response.Error(c, response.StatusBadRequest, "Invalid request payload", "The payload is not valid.")
+		return
+	}
+
+	// Check for password empty and username or email empty.
+	if strings.EqualFold(loginData.Password, "") || (strings.EqualFold(loginData.Username, "") && strings.EqualFold(loginData.Email, "")) {
+		response.Error(c, response.StatusBadRequest, "Invalid Credentials", "The user credentials are not valid.")
+		return
+	}
+
+	user := model.User{
+		Username: loginData.Username,
+		Password: loginData.Password,
+		Email:    loginData.Email,
+	}
+
+	res, err := a.userService.Login(user)
+
+	if err != nil {
+		if err == fluxerrors.ErrInvalidCredentials {
+			response.Error(c, response.StatusUnauthorized, "Invalid credentials", "The user credentials are not valid.")
+			return
+		}
+		if err == fluxerrors.ErrUserNotFound {
+			response.Error(c, response.StatusNotFound, "User not found", "The user does not exist.")
+			return
+		}
+
+		response.Error(c, response.StatusInternalServerError, "Internal server error", err.Error())
+	}
+
+	response.Success(
+		c,
+		response.StatusOK,
+		"User logged in successfully",
+		res,
+	)
 }

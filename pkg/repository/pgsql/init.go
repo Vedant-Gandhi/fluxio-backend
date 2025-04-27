@@ -2,9 +2,11 @@ package pgsql
 
 import (
 	"fluxio-backend/pkg/repository/pgsql/tables"
+	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type PgSQLConfig struct {
@@ -17,7 +19,15 @@ type PgSQL struct {
 
 func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
 
-	db, err := gorm.Open(postgres.Open(cfg.URL), &gorm.Config{})
+	// Configure GORM
+	gormConfig := &gorm.Config{}
+
+	// Enable SQL logging in development
+	if os.Getenv("GO_ENV") == "development" {
+		gormConfig.Logger = logger.Default.LogMode(logger.Info)
+	}
+
+	db, err := gorm.Open(postgres.Open(cfg.URL), gormConfig)
 
 	if err != nil {
 		return nil, err

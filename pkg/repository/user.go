@@ -113,6 +113,16 @@ func (u *UserRepository) GetUserByUsername(username string) (user model.User, er
 		return
 	}
 
+	user = model.User{
+		ID:            model.UserID(userTable.ID.String()),
+		Username:      userTable.Username,
+		Email:         userTable.Email,
+		Password:      userTable.Password,
+		UpdatedAt:     userTable.UpdatedAt,
+		CreatedAt:     userTable.CreatedAt,
+		IsBlackListed: userTable.IsBlackListed,
+	}
+
 	return
 }
 
@@ -129,6 +139,16 @@ func (u *UserRepository) GetUserByEmail(email string) (user model.User, err erro
 		}
 		err = result.Error
 		return
+	}
+
+	user = model.User{
+		ID:            model.UserID(userTable.ID.String()),
+		Username:      userTable.Username,
+		Email:         userTable.Email,
+		Password:      userTable.Password,
+		UpdatedAt:     userTable.UpdatedAt,
+		CreatedAt:     userTable.CreatedAt,
+		IsBlackListed: userTable.IsBlackListed,
 	}
 
 	return

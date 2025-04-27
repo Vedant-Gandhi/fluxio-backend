@@ -21,6 +21,7 @@ func (r *AuthRouter) RegisterRoutes(router *gin.Engine) {
 	authGroup := router.Group("/api/v1/auth")
 	{
 		authGroup.POST("/register", r.authController.RegisterUser)
+		authGroup.POST("/login", r.authController.LoginUser)
 
 	}
 }
