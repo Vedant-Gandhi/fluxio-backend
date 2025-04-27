@@ -31,7 +31,7 @@ func (u *UserRepository) CreateUser(user model.User) (id model.UserID, err error
 	if result.Error != nil {
 
 		// Check for duplicate key violation
-		if result.Error == gorm.ErrDuplicatedKey {
+		if result.Error == gorm.ErrDuplicatedKey || strings.Contains(result.Error.Error(), "uni_users_username") || strings.Contains(result.Error.Error(), "uni_users_email") {
 
 			// Check which unique constraint was violated
 			if strings.Contains(result.Error.Error(), "username") {

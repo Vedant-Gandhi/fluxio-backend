@@ -10,6 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	TOKEN_COOKIE_NAME = "token"
+	TOKEN_COOKIE_EXP  = 8 * 3600
+)
+
 type AuthController struct {
 	userService *service.UserService
 }
@@ -45,12 +50,18 @@ func (a *AuthController) RegisterUser(c *gin.Context) {
 		Email:    rawUser.Email,
 	}
 
-	id, err := a.userService.CreateUser(user, user.Password)
+	id, token, err := a.userService.CreateUser(user, user.Password)
 
 	if err != nil {
+		if err == fluxerrors.ErrUsernameExists {
+			response.Error(c, response.StatusConflict, "User already exists", err.Error())
+			return
+		}
 		response.Error(c, response.StatusUnprocessableEntity, response.MsgUserCreationFailed, err.Error())
 		return
 	}
+
+	c.SetCookie(TOKEN_COOKIE_NAME, token, TOKEN_COOKIE_EXP, "/", "", false, true)
 
 	response.Success(
 		c,
@@ -103,7 +114,7 @@ func (a *AuthController) LoginUser(c *gin.Context) {
 	}
 
 	// Set token
-	c.SetCookie("token", token, 8*3600, "/", "", false, true)
+	c.SetCookie(TOKEN_COOKIE_NAME, token, TOKEN_COOKIE_EXP, "/", "", false, true)
 
 	response.Success(
 		c,

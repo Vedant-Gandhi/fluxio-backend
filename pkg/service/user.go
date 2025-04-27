@@ -5,6 +5,7 @@ import (
 	"fluxio-backend/pkg/fluxcrypto"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -23,7 +24,7 @@ func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService) *UserSe
 	}
 }
 
-func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.UserID, err error) {
+func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.UserID, token string, err error) {
 
 	hashedPass, err := fluxcrypto.HashPassword(rawPassword)
 
@@ -42,9 +43,16 @@ func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.
 		if err == fluxerrors.ErrUsernameExists || err == fluxerrors.ErrEmailExists {
 			return
 		}
+		fmt.Printf("Error creating user: %v", err)
 		err = fluxerrors.ErrUserCreationFailed
 		return
 	}
+
+	// Suppress the error if token creation fails.
+	token, _ = s.jService.GenerateToken(model.JWTTokenClaims{
+		UserID: user.ID.String(),
+		Sub:    "user",
+	}, time.Now().Add(time.Duration(TOKEN_EXPIRY)*time.Second))
 
 	return
 }
