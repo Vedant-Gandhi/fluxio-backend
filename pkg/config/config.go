@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Server   ServerConfig   `env:"SERVER"`
 	Database DatabaseConfig `env:"DB"`
+	JWT      JWTConfig      `env:"JWT"`
 }
 
 type ServerConfig struct {
@@ -30,6 +31,10 @@ type DatabaseConfig struct {
 	Name     string `env:"NAME" default:"fluxio"`
 	SSLMode  string `env:"SSL_MODE" default:"disable"`
 	LogData  bool
+}
+
+type JWTConfig struct {
+	Secret string `env:"SECRET" default:""`
 }
 
 const envPrefix = "FLUXIO"

@@ -5,20 +5,26 @@ import (
 	"fluxio-backend/pkg/fluxcrypto"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository"
+	"fmt"
 	"strings"
+	"time"
 )
 
+const TOKEN_EXPIRY = uint(8 * 60) // 8 hours
+
 type UserService struct {
-	repo *repository.UserRepository
+	repo     *repository.UserRepository
+	jService *JWTService
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
+func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService) *UserService {
 	return &UserService{
-		repo: repo,
+		repo:     repo,
+		jService: jwtsvc,
 	}
 }
 
-func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.UserID, err error) {
+func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.UserID, token string, err error) {
 
 	hashedPass, err := fluxcrypto.HashPassword(rawPassword)
 
@@ -37,14 +43,21 @@ func (s *UserService) CreateUser(user model.User, rawPassword string) (id model.
 		if err == fluxerrors.ErrUsernameExists || err == fluxerrors.ErrEmailExists {
 			return
 		}
+		fmt.Printf("Error creating user: %v", err)
 		err = fluxerrors.ErrUserCreationFailed
 		return
 	}
 
+	// Suppress the error if token creation fails.
+	token, _ = s.jService.GenerateToken(model.JWTTokenClaims{
+		UserID: user.ID.String(),
+		Sub:    "user",
+	}, time.Now().Add(time.Duration(TOKEN_EXPIRY)*time.Second))
+
 	return
 }
 
-func (s *UserService) Login(userData model.User) (user model.User, err error) {
+func (s *UserService) Login(userData model.User) (user model.User, token string, err error) {
 
 	usernameEmpty := strings.EqualFold(userData.Username, "")
 	emailEmpty := strings.EqualFold(userData.Email, "")
@@ -82,12 +95,24 @@ func (s *UserService) Login(userData model.User) (user model.User, err error) {
 	}
 
 	// Check password if user found.
-	matches, err := fluxcrypto.VerifyPassword(user.Password, userInputPassword)
+	matches, _ := fluxcrypto.VerifyPassword(user.Password, userInputPassword)
 	if !matches {
 		err = fluxerrors.ErrInvalidCredentials
+		return
 	}
 
-	return user, err
+	token, err = s.jService.GenerateToken(model.JWTTokenClaims{
+		UserID: user.ID.String(),
+		Sub:    "user",
+	}, time.Now().Add(time.Duration(TOKEN_EXPIRY)*time.Second))
+
+	if err != nil {
+		err = fluxerrors.ErrFailedToCreateToken
+
+		// Reset the user object to prevent leaking user data.
+		user = model.User{}
+	}
 
 	return
+
 }
