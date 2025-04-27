@@ -31,7 +31,13 @@ func NewServer() {
 	userRepo := repository.NewUserRepository(db)
 
 	// Services
-	userService := service.NewUserService(userRepo)
+	if cfg.JWT.Secret == "" {
+		fmt.Println("JWT secret is not set in the environment variables.")
+		os.Exit(1)
+	}
+
+	jwtService := service.NewJWTService(cfg.JWT.Secret)
+	userService := service.NewUserService(userRepo, jwtService)
 
 	// Controllers
 	authController := controller.NewAuthController(userService)

@@ -87,7 +87,7 @@ func (a *AuthController) LoginUser(c *gin.Context) {
 		Email:    loginData.Email,
 	}
 
-	res, err := a.userService.Login(user)
+	res, token, err := a.userService.Login(user)
 
 	if err != nil {
 		if err == fluxerrors.ErrInvalidCredentials {
@@ -101,6 +101,9 @@ func (a *AuthController) LoginUser(c *gin.Context) {
 
 		response.Error(c, response.StatusInternalServerError, "Internal server error", err.Error())
 	}
+
+	// Set token
+	c.SetCookie("token", token, 8*3600, "/", "", false, true)
 
 	response.Success(
 		c,
