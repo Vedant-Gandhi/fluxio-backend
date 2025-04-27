@@ -21,3 +21,12 @@ var (
 	ErrInvalidUserID     = errors.New("invalid user ID")
 	ErrUserNotFound      = errors.New("user not found")
 )
+
+// JWT errors
+var (
+	ErrInvalidToken        = errors.New("invalid token")
+	ErrTokenExpired        = errors.New("token expired")
+	ErrTokenNotFound       = errors.New("token not found")
+	ErrFailedToCreateToken = errors.New("failed to create token")
+	ErrInvalidClaims       = errors.New("invalid claims in token")
+)

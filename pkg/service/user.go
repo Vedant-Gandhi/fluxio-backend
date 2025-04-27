@@ -89,5 +89,4 @@ func (s *UserService) Login(userData model.User) (user model.User, err error) {
 
 	return user, err
 
-	return
 }
