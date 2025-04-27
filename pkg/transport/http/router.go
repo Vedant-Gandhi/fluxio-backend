@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fluxio-backend/pkg/transport/http/routes"
 	"fmt"
 	"net/http"
 
@@ -13,31 +12,40 @@ type RouterConfig struct {
 	Port    string
 }
 
-type Router struct {
-	r *gin.Engine
+// RouteRegistrar interface that all route groups should implement
+type RouteRegistrar interface {
+	RegisterRoutes(router *gin.Engine)
 }
 
-func NewRouter(cfg RouterConfig, authRoute *routes.AuthRoute) *Router {
+type Router struct {
+	engine  *gin.Engine
+	address string
+	port    string
+}
 
+func NewRouter(cfg RouterConfig, routeRegistrars ...RouteRegistrar) *Router {
 	router := gin.Default()
 
+	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
 		})
 	})
 
-	v1 := router.Group("/api/v1")
-	{
-		_ = v1.Group("/auth")
-		{
-
-		}
+	// Register all routes provided by the route registrars
+	for _, registrar := range routeRegistrars {
+		registrar.RegisterRoutes(router)
 	}
-
-	router.Run(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port))
 
 	return &Router{
-		r: router,
+		engine:  router,
+		address: cfg.Address,
+		port:    cfg.Port,
 	}
+}
+
+// Start starts the HTTP server
+func (r *Router) Start() error {
+	return r.engine.Run(fmt.Sprintf("%s:%s", r.address, r.port))
 }
