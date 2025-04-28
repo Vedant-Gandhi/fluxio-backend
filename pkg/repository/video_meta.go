@@ -16,7 +16,8 @@ func NewVideoMetaRepository(db *pgsql.PgSQL) *VideoMetaRepository {
 
 func (r *VideoMetaRepository) CreateVideoMeta(videoMeta model.Video) (video model.Video, err error) {
 	vidTable := &tables.Video{
-		Title: videoMeta.Title,
+		Title:  videoMeta.Title,
+		UserID: videoMeta.UserID,
 	}
 	return
 }
