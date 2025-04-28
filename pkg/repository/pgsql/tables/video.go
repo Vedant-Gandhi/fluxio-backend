@@ -4,7 +4,7 @@ import "github.com/google/uuid"
 
 type Video struct {
 	ID              uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Title           string     `gorm:"not null" json:"title"`
+	Title           string     `gorm:"not null;unique" json:"title"`
 	Description     string     `gorm:"not null" json:"description"`
 	ParentID        *uuid.UUID `gorm:"type:uuid" json:"parent_id,omitempty"` // Should be nullable for original videos
 	Width           uint32     `json:"width"`                                // Will be unknown during upload
