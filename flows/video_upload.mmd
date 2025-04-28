@@ -1,0 +1,46 @@
+flowchart TD
+    %% Main Upload Flow
+    A[User Request] --> B[Create DB Entry<br>status: 'uploading']
+    B --> C[Generate Presigned URL]
+    C --> D[User Upload to S3/MinIO]
+    D --> E[S3 Webhook Triggered]
+    E --> F{Validation<br>Checks}
+    F -->|Fail| G[Update Status:<br>'failed']
+    F -->|Pass| H[Update Status:<br>'processing']
+    H --> I[Launch Background Processing]
+    
+    %% Background Processing
+    I --> J[Generate Thumbnail]
+    I --> K[Extract Metadata]
+    J --> L{Success?}
+    L -->|Yes| M[Store Thumbnail<br>status: 'generated']
+    L -->|No| N[Create Failed<br>Thumbnail Entry<br>status: 'failed']
+    M --> O[Update Status: 'ready']
+    N --> O
+    K --> O
+    
+    %% Error Handling - Cleanup Job
+    P[Cleanup Job<br>periodic] --> Q[Find Stalled<br>Uploads]
+    Q --> R[Update Status:<br>'abandoned']
+    R -.-> S[User Requests<br>Retry]
+    
+    %% Error Handling - Retry Mechanisms
+    S --> T[Generate<br>New URL]
+    T -.-> D
+    
+    %% Thumbnail Retry
+    U[User Requests<br>Thumbnail Retry] --> V{Retry Count<br>< Limit?}
+    V -->|Yes| W[Regenerate<br>Thumbnail]
+    V -->|No| X[Retry Limit<br>Reached]
+    W -.-> J
+    
+    %% Styling
+    classDef process fill:#e6f2ff,stroke:#3498db,stroke-width:2px,color:black;
+    classDef decision fill:#fff7e6,stroke:#f39c12,stroke-width:2px,color:black;
+    classDef start fill:#e6ffe6,stroke:#2ecc71,stroke-width:2px,color:black;
+    classDef error fill:#ffe6e6,stroke:#e74c3c,stroke-width:2px,color:black;
+    
+    class A,S,U start;
+    class B,C,D,E,H,I,J,K,M,P,Q,T,W process;
+    class F,L,V decision;
+    class G,N,R,X error;
