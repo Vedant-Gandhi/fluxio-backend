@@ -84,4 +84,5 @@ type Video struct {
 	Size            uint64          `json:"size"`
 	Language        string          `json:"language"`
 	ResourceURL     url.URL         `json:"resource_url"`
+	StoragePath     string          `json:"-"`
 }
