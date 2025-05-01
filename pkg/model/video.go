@@ -1,10 +1,13 @@
 package model
 
 import (
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type VideoID string
 
 type VideoStatus string
 
@@ -59,7 +62,7 @@ func (s VideoVisibility) IsAcceptable() bool {
 }
 
 type Video struct {
-	ID              uuid.UUID       `json:"id"`
+	ID              VideoID         `json:"id"`
 	Title           string          `json:"title"`
 	Description     string          `json:"description"`
 	ParentID        *uuid.UUID      `json:"parent_id,omitempty"`
@@ -80,4 +83,5 @@ type Video struct {
 	Slug            string          `json:"slug"`
 	Size            uint64          `json:"size"`
 	Language        string          `json:"language"`
+	ResourceURL     url.URL         `json:"resource_url"`
 }

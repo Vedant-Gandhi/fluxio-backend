@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
@@ -20,7 +21,7 @@ func NewVideoMetaRepository(db *pgsql.PgSQL) *VideoMetaRepository {
 	return &VideoMetaRepository{db: db}
 }
 
-func (r *VideoMetaRepository) CreateVideoMeta(videoMeta model.Video) (video model.Video, err error) {
+func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
 
 	if strings.EqualFold(videoMeta.Visibility.String(), "") {
 		videoMeta.Visibility = model.VideoVisibilityPublic
@@ -40,7 +41,7 @@ func (r *VideoMetaRepository) CreateVideoMeta(videoMeta model.Video) (video mode
 		Slug:       slug,
 	}
 
-	tx := r.db.DB.Create(vidTable)
+	tx := r.db.DB.WithContext(ctx).Create(vidTable)
 
 	err = tx.Error
 
@@ -59,6 +60,23 @@ func (r *VideoMetaRepository) CreateVideoMeta(videoMeta model.Video) (video mode
 		err = fluxerrors.ErrVideoCreationFailed
 		return
 
+	}
+
+	video = model.Video{
+		ID:         model.VideoID(vidTable.ID.String()),
+		Title:      vidTable.Title,
+		UserID:     vidTable.UserID,
+		Status:     model.VideoStatus(vidTable.Status),
+		Visibility: model.VideoVisibility(vidTable.Visibility),
+		Slug:       vidTable.Slug,
+		RetryCount: vidTable.RetryCount,
+		CreatedAt:  vidTable.CreatedAt,
+		UpdatedAt:  vidTable.UpdatedAt,
+		IsFeatured: vidTable.IsFeatured,
+	}
+
+	if vidTable.DeletedAt.Valid {
+		video.DeletedAt = &vidTable.DeletedAt.Time
 	}
 
 	return
