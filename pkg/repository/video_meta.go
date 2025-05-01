@@ -81,3 +81,23 @@ func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta mod
 
 	return
 }
+func (r *VideoMetaRepository) IncrementVideoRetryCount(ctx context.Context, videoID model.VideoID) (err error) {
+	vidTable := &tables.Video{}
+
+	tx := r.db.DB.WithContext(ctx).Model(vidTable).
+		Where("id = ?", videoID).
+		Update("retry_count", gorm.Expr("retry_count + 1"))
+
+	err = tx.Error
+
+	if err != nil {
+		return
+	}
+
+	if tx.RowsAffected == 0 {
+		err = fluxerrors.ErrVideoNotFound
+		return
+	}
+
+	return
+}

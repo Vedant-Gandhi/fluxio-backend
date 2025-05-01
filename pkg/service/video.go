@@ -23,7 +23,6 @@ func NewVideoService(metaRepo *repository.VideoMetaRepository, mngerRepo *reposi
 func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
 	video, err = s.metaRepo.CreateVideoMeta(ctx, vidMeta)
 
-	//TODO: Add proper error handling for video creation
 	if err != nil {
 		return
 	}
@@ -34,10 +33,15 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 		return
 	}
 
-	ptrURL, err := s.managerRepo.GenerateVideoUploadURL(video.ID, video.Slug)
+	// Generate the upload URL for the video.
+	ptrURL, err := s.managerRepo.GenerateVideoUploadURL(ctx, video.ID, video.Slug)
 
 	if err != nil {
 		err = fluxerrors.ErrVideoURLGenerationFailed
+		_ = s.metaRepo.IncrementVideoRetryCount(ctx, video.ID)
+
+		// Prevent returning the video if the url generation fails.
+		video = model.Video{}
 		return
 	}
 

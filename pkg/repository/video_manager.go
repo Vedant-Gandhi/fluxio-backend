@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
@@ -42,7 +43,7 @@ func NewVideoManagerRepository(db *pgsql.PgSQL, cfg VideoManagerRepositoryConfig
 	return &VideoManagerRepository{db: db, awsS3: s3Client, bucketName: cfg.S3BucketName}
 }
 
-func (v *VideoManagerRepository) GenerateVideoUploadURL(id model.VideoID, slug string) (url *url.URL, err error) {
+func (v *VideoManagerRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
 	metadata := map[string]*string{
 		"video_id": aws.String(string(id)),
 	}
