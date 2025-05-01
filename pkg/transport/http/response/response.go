@@ -24,6 +24,17 @@ const (
 	MsgUserCreationFailed = "Failed to create user"
 )
 
+// Video error messages
+const (
+	MsgVideoCreationFailed      = "Failed to create video entry"
+	MsgVideoUploadFailed        = "Failed to upload video"
+	MsgVideoNotFound            = "Video not found"
+	MsgVideoAlreadyExists       = "Video already exists"
+	MsgVideoUploadNotAllowed    = "Video upload not allowed"
+	MsgVideoURLGenerationFailed = "Failed to generate video upload URL"
+	MsgDuplicateVideoTitle      = "Video title already exists"
+)
+
 // ErrorResponse represents a standardized error response
 type ErrorResponse struct {
 	Status  int    `json:"status"`
