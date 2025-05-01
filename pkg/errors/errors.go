@@ -40,4 +40,7 @@ var (
 	ErrDuplicateVideoTitle = errors.New("video title already exists")
 
 	ErrFailedToGenerateVideoSlug = errors.New("failed to generate video slug")
+
+	ErrVideoURLGenerationFailed = errors.New("failed to generate video upload URL")
+	ErrVideoUploadNotAllowed    = errors.New("video upload not allowed")
 )
