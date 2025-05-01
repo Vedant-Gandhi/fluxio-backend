@@ -30,7 +30,6 @@ type DatabaseConfig struct {
 	Password string `env:"PASSWORD" default:""`
 	Name     string `env:"NAME" default:"fluxio"`
 	SSLMode  string `env:"SSL_MODE" default:"disable"`
-	LogData  bool
 }
 
 type JWTConfig struct {
@@ -46,10 +45,6 @@ func LoadConfig() (*Config, error) {
 
 	config := &Config{}
 	populateConfigFromEnv(config, envPrefix)
-
-	if os.Getenv("GO_ENV") == "development" {
-		config.Database.LogData = true
-	}
 
 	return config, nil
 }
