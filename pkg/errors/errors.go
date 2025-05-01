@@ -30,3 +30,14 @@ var (
 	ErrFailedToCreateToken = errors.New("failed to create token")
 	ErrInvalidClaims       = errors.New("invalid claims in token")
 )
+
+// Video errors
+var (
+	ErrVideoNotFound       = errors.New("video not found")
+	ErrVideoAlreadyExists  = errors.New("video already exists")
+	ErrVideoCreationFailed = errors.New("failed to create video")
+
+	ErrDuplicateVideoTitle = errors.New("video title already exists")
+
+	ErrFailedToGenerateVideoSlug = errors.New("failed to generate video slug")
+)
