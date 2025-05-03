@@ -7,6 +7,7 @@ import (
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http"
 	"fluxio-backend/pkg/transport/http/controller"
+	"fluxio-backend/pkg/transport/http/middleware"
 	"fluxio-backend/pkg/transport/http/routes"
 	"fmt"
 	"os"
@@ -42,13 +43,17 @@ func NewServer() {
 	userService := service.NewUserService(userRepo, jwtService)
 	videoService := service.NewVideoService(videoMetaRepo, videoManagerRepo)
 
+	// Middleware
+	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService)
+	middleware := middleware.NewMiddleware(authMiddleware)
+
 	// Controllers
 	authController := controller.NewAuthController(userService)
 	videoController := controller.NewVideoController(videoService)
 
 	// Route registrars
-	authRouter := routes.NewAuthRouter(authController)
-	videoRouter := routes.NewVideoRouter(videoController)
+	authRouter := routes.NewAuthRouter(authController, middleware)
+	videoRouter := routes.NewVideoRouter(videoController, middleware)
 
 	// Create and start HTTP router
 	router := http.NewRouter(
