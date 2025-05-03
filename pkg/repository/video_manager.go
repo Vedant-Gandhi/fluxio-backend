@@ -23,7 +23,6 @@ type VideoManagerRepositoryConfig struct {
 	S3Region     string
 	S3AccessKey  string
 	S3SecretKey  string
-	BucketName   string
 }
 
 type VideoManagerRepository struct {

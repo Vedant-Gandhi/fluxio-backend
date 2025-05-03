@@ -30,8 +30,16 @@ func NewServer() {
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
+
 	videoMetaRepo := repository.NewVideoMetaRepository(db)
-	videoManagerRepo := repository.NewVideoManagerRepository(db, repository.VideoManagerRepositoryConfig{})
+	videoManagerRepo := repository.NewVideoManagerRepository(
+		db,
+		repository.VideoManagerRepositoryConfig{
+			S3BucketName: cfg.VideoCfg.S3BucketName,
+			S3Region:     cfg.VideoCfg.S3Region,
+			S3AccessKey:  cfg.VideoCfg.S3AccessKey,
+			S3SecretKey:  cfg.VideoCfg.S3SecretKey,
+		})
 
 	// Services
 	if cfg.JWT.Secret == "" {
