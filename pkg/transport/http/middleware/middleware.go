@@ -37,7 +37,9 @@ func (a *AuthMiddleware) Add() gin.HandlerFunc {
 		userId := model.UserID(userToken.UserID)
 
 		user, err := a.authService.GetUserByID(userId)
-		if err != nil {
+
+		// If the user is not found or is blacklisted, return an error.
+		if err != nil || user.IsBlackListed {
 			if err == fluxerrors.ErrUserNotFound || err == fluxerrors.ErrInvalidUserID {
 				response.Error(c, response.StatusNotFound, "User not found.", "User not found.")
 				c.AbortWithError(response.StatusUnauthorized, err)
