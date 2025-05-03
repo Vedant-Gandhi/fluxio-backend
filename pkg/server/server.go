@@ -7,6 +7,7 @@ import (
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http"
 	"fluxio-backend/pkg/transport/http/controller"
+	"fluxio-backend/pkg/transport/http/middleware"
 	"fluxio-backend/pkg/transport/http/routes"
 	"fmt"
 	"os"
@@ -30,6 +31,16 @@ func NewServer() {
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 
+	videoMetaRepo := repository.NewVideoMetaRepository(db)
+	videoManagerRepo := repository.NewVideoManagerRepository(
+		db,
+		repository.VideoManagerRepositoryConfig{
+			S3BucketName: cfg.VideoCfg.S3BucketName,
+			S3Region:     cfg.VideoCfg.S3Region,
+			S3AccessKey:  cfg.VideoCfg.S3AccessKey,
+			S3SecretKey:  cfg.VideoCfg.S3SecretKey,
+		})
+
 	// Services
 	if cfg.JWT.Secret == "" {
 		fmt.Println("JWT secret is not set in the environment variables.")
@@ -38,12 +49,19 @@ func NewServer() {
 
 	jwtService := service.NewJWTService(cfg.JWT.Secret)
 	userService := service.NewUserService(userRepo, jwtService)
+	videoService := service.NewVideoService(videoMetaRepo, videoManagerRepo)
+
+	// Middleware
+	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService)
+	middleware := middleware.NewMiddleware(authMiddleware)
 
 	// Controllers
 	authController := controller.NewAuthController(userService)
+	videoController := controller.NewVideoController(videoService)
 
 	// Route registrars
-	authRouter := routes.NewAuthRouter(authController)
+	authRouter := routes.NewAuthRouter(authController, middleware)
+	videoRouter := routes.NewVideoRouter(videoController, middleware)
 
 	// Create and start HTTP router
 	router := http.NewRouter(
@@ -51,7 +69,8 @@ func NewServer() {
 			Port:    cfg.Server.Port,
 			Address: cfg.Server.Address,
 		},
-		authRouter, // Pass the auth router as a route registrar
+		authRouter,  // Pass the auth router as a route registrar
+		videoRouter, // Pass the video router as a route registrar
 	)
 
 	// Start the server

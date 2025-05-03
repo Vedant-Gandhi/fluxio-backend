@@ -116,3 +116,19 @@ func (s *UserService) Login(userData model.User) (user model.User, token string,
 	return
 
 }
+
+func (s *UserService) GetUserByID(userID model.UserID) (user model.User, err error) {
+
+	user, err = s.repo.GetUserByID(userID)
+
+	if err != nil {
+		if err == fluxerrors.ErrUserNotFound || err == fluxerrors.ErrInvalidUserID {
+			return
+		}
+		err = fluxerrors.ErrUnknown
+		return
+
+	}
+
+	return
+}

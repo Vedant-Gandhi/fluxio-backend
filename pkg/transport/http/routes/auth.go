@@ -2,17 +2,20 @@ package routes
 
 import (
 	"fluxio-backend/pkg/transport/http/controller"
+	"fluxio-backend/pkg/transport/http/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthRouter struct {
 	authController *controller.AuthController
+	middleware     *middleware.Middleware
 }
 
-func NewAuthRouter(authController *controller.AuthController) *AuthRouter {
+func NewAuthRouter(authController *controller.AuthController, middleware *middleware.Middleware) *AuthRouter {
 	return &AuthRouter{
 		authController: authController,
+		middleware:     middleware,
 	}
 }
 
