@@ -1,6 +1,7 @@
 package controller
 
 import (
+	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
@@ -28,6 +29,10 @@ func (v *VideoController) GenerateVideUploadEntry(c *gin.Context) {
 	}
 	video, uploadURL, err := v.videoService.CreateVideoEntry(c, video)
 	if err != nil {
+		if err == fluxerrors.ErrDuplicateVideoTitle {
+			response.Error(c, response.StatusConflict, response.MsgDuplicateVideoTitle, err.Error())
+			return
+		}
 		response.Error(c, response.StatusUnprocessableEntity, response.MsgVideoCreationFailed, err.Error())
 		return
 	}

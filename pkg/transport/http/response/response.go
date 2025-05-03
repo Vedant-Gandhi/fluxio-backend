@@ -32,7 +32,7 @@ const (
 	MsgVideoAlreadyExists       = "Video already exists"
 	MsgVideoUploadNotAllowed    = "Video upload not allowed"
 	MsgVideoURLGenerationFailed = "Failed to generate video upload URL"
-	MsgDuplicateVideoTitle      = "Video title already exists"
+	MsgDuplicateVideoTitle      = "The video title already exists."
 )
 
 // ErrorResponse represents a standardized error response

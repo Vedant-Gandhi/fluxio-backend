@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
@@ -8,11 +9,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-)
-
-const (
-	TOKEN_COOKIE_NAME = "token"
-	TOKEN_COOKIE_EXP  = 8 * 3600
 )
 
 type AuthController struct {
@@ -61,7 +57,7 @@ func (a *AuthController) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie(TOKEN_COOKIE_NAME, token, TOKEN_COOKIE_EXP, "/", "", false, true)
+	c.SetCookie(constants.AuthTokenCookieName, token, constants.AuthTokenCookieExp, "/", "", false, true)
 
 	response.Success(
 		c,
@@ -114,7 +110,7 @@ func (a *AuthController) LoginUser(c *gin.Context) {
 	}
 
 	// Set token
-	c.SetCookie(TOKEN_COOKIE_NAME, token, TOKEN_COOKIE_EXP, "/", "", false, true)
+	c.SetCookie(constants.AuthTokenCookieName, token, constants.AuthTokenCookieExp, "/", "", false, true)
 
 	response.Success(
 		c,
