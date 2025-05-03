@@ -13,6 +13,11 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
+// Generic errors
+var (
+	ErrUnknown = errors.New("unknown error")
+)
+
 // Repo Errors
 var (
 	ErrUsernameExists    = errors.New("username already exists")
