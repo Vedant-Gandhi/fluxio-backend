@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fluxio-backend/pkg/constants"
+	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
@@ -34,6 +35,22 @@ func (a *AuthMiddleware) Add() gin.HandlerFunc {
 		}
 
 		userId := model.UserID(userToken.UserID)
+
+		user, err := a.authService.GetUserByID(userId)
+		if err != nil {
+			if err == fluxerrors.ErrUserNotFound || err == fluxerrors.ErrInvalidUserID {
+				response.Error(c, response.StatusNotFound, "User not found.", "User not found.")
+				c.AbortWithError(response.StatusUnauthorized, err)
+				return
+			}
+
+			response.Error(c, response.StatusUnauthorized, "Unauthroized user access.", "User is not authenticated.")
+			c.AbortWithError(response.StatusUnauthorized, err)
+			return
+		}
+
+		c.Set(constants.GinUserContextKey, user)
+		c.Next()
 
 	}
 }
