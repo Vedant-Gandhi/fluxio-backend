@@ -28,6 +28,7 @@ func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta mod
 	}
 
 	slug := utils.CreateURLSafeVideoSlug(videoMeta.Title)
+
 	if strings.EqualFold(slug, "") {
 		err = fluxerrors.ErrFailedToGenerateVideoSlug
 		return
@@ -47,13 +48,14 @@ func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta mod
 
 	if err != nil {
 		if err == gorm.ErrDuplicatedKey {
-			if strings.Contains(err.Error(), "video_title_key") {
-				err = fluxerrors.ErrDuplicateVideoTitle
-				return
-			}
 
 			err = fluxerrors.ErrVideoAlreadyExists
 
+			return
+		}
+
+		if strings.Contains(err.Error(), "uni_videos_title") {
+			err = fluxerrors.ErrDuplicateVideoTitle
 			return
 		}
 

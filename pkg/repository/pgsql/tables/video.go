@@ -29,5 +29,5 @@ type Video struct {
 	Slug            string         `gorm:"unique;not null" json:"slug"`
 	Size            uint64         `json:"size"`     // Will be unknown during initial upload
 	Language        string         `json:"language"` // Might be unknown initially
-	StoragePath     string         `gorm:"not null" json:"storage_path"`
+	StoragePath     string         `gorm:"default:""" json:"storage_path"`
 }

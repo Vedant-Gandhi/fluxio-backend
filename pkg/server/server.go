@@ -29,6 +29,8 @@ func NewServer() {
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
+	videoMetaRepo := repository.NewVideoMetaRepository(db)
+	videoManagerRepo := repository.NewVideoManagerRepository(db, repository.VideoManagerRepositoryConfig{})
 
 	// Services
 	if cfg.JWT.Secret == "" {
@@ -38,12 +40,15 @@ func NewServer() {
 
 	jwtService := service.NewJWTService(cfg.JWT.Secret)
 	userService := service.NewUserService(userRepo, jwtService)
+	videoService := service.NewVideoService(videoMetaRepo, videoManagerRepo)
 
 	// Controllers
 	authController := controller.NewAuthController(userService)
+	videoController := controller.NewVideoController(videoService)
 
 	// Route registrars
 	authRouter := routes.NewAuthRouter(authController)
+	videoRouter := routes.NewVideoRouter(videoController)
 
 	// Create and start HTTP router
 	router := http.NewRouter(
@@ -51,7 +56,8 @@ func NewServer() {
 			Port:    cfg.Server.Port,
 			Address: cfg.Server.Address,
 		},
-		authRouter, // Pass the auth router as a route registrar
+		authRouter,  // Pass the auth router as a route registrar
+		videoRouter, // Pass the video router as a route registrar
 	)
 
 	// Start the server

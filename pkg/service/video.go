@@ -8,6 +8,10 @@ import (
 	"net/url"
 )
 
+const (
+	MAX_VIDEO_RETRY_COUNT = 4
+)
+
 type VideoService struct {
 	metaRepo    *repository.VideoMetaRepository
 	managerRepo *repository.VideoManagerRepository
@@ -28,7 +32,7 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	// Disallow upload if the video is not in a pending state or if the retry count is greater than 3.
-	if video.RetryCount > 3 || video.Status != model.VideoStatusPending {
+	if video.RetryCount > MAX_VIDEO_RETRY_COUNT || video.Status != model.VideoStatusPending {
 		err = fluxerrors.ErrVideoUploadNotAllowed
 		return
 	}
