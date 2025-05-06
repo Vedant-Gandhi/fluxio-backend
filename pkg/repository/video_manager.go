@@ -6,6 +6,7 @@ import (
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +24,7 @@ type VideoManagerRepositoryConfig struct {
 	S3Region     string
 	S3AccessKey  string
 	S3SecretKey  string
+	S3Endpoint   string
 }
 
 type VideoManagerRepository struct {
@@ -32,10 +34,22 @@ type VideoManagerRepository struct {
 }
 
 func NewVideoManagerRepository(db *pgsql.PgSQL, cfg VideoManagerRepositoryConfig) *VideoManagerRepository {
-	awsSession, _ := session.NewSession(&aws.Config{
+
+	url, _ := url.Parse(cfg.S3Endpoint)
+
+	awsConfig := &aws.Config{
 		Region:      aws.String(cfg.S3Region),
-		Credentials: credentials.NewStaticCredentials(cfg.S3AccessKey, cfg.S3AccessKey, ""),
-	})
+		Credentials: credentials.NewStaticCredentials(cfg.S3AccessKey, cfg.S3SecretKey, ""),
+	}
+
+	if !strings.EqualFold(url.Host, "") {
+
+		awsConfig.Endpoint = aws.String(url.String())
+		awsConfig.DisableSSL = aws.Bool(strings.EqualFold(url.Scheme, "http"))
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+	}
+
+	awsSession, _ := session.NewSession(awsConfig)
 
 	s3Client := s3.New(awsSession)
 
@@ -43,14 +57,15 @@ func NewVideoManagerRepository(db *pgsql.PgSQL, cfg VideoManagerRepositoryConfig
 }
 
 func (v *VideoManagerRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
-	metadata := map[string]*string{
-		"video_id": aws.String(string(id)),
-	}
+	///metadata := map[string]*string{
+	///	"video_id": aws.String(string(id)),
+	//}
 
 	s3Request, _ := v.awsS3.PutObjectRequest(&s3.PutObjectInput{
-		Bucket:   aws.String(v.bucketName),
-		Key:      aws.String(slug),
-		Metadata: metadata,
+		Bucket: aws.String(v.bucketName),
+		Key:    aws.String(slug),
+		//Metadata:    metadata,
+		ContentType: aws.String("application/octet-stream"),
 	})
 
 	rawURL, err := s3Request.Presign(PRESIGN_EXPIRE_TIME)

@@ -10,3 +10,8 @@ const (
 const (
 	GinUserContextKey = "user"
 )
+
+const (
+	MaxVideoURLRegenerateRetryCount       = 4
+	MaxVideoThumbnailRegenerateRetryCount = 3
+)

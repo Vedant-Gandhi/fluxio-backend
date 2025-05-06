@@ -41,6 +41,8 @@ var (
 	ErrVideoNotFound       = errors.New("video not found")
 	ErrVideoAlreadyExists  = errors.New("video already exists")
 	ErrVideoCreationFailed = errors.New("failed to create video")
+	ErrInvalidVideoID      = errors.New("video id is invalid")
+	ErrInvalidVideoStatus  = errors.New("video status is not valid")
 
 	ErrDuplicateVideoTitle = errors.New("video title already exists")
 
@@ -48,4 +50,7 @@ var (
 
 	ErrVideoURLGenerationFailed = errors.New("failed to generate video upload URL")
 	ErrVideoUploadNotAllowed    = errors.New("video upload not allowed")
+	ErrVideoMetaUpdateFailed    = errors.New("failed to update the video meta")
+
+	ErrMalformedStoragePath = errors.New("storage path is malformed")
 )

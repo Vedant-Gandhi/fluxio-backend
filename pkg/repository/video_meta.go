@@ -9,6 +9,7 @@ import (
 	"fluxio-backend/pkg/utils"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -99,6 +100,140 @@ func (r *VideoMetaRepository) IncrementVideoRetryCount(ctx context.Context, vide
 	if tx.RowsAffected == 0 {
 		err = fluxerrors.ErrVideoNotFound
 		return
+	}
+
+	return
+}
+
+func (r *VideoMetaRepository) UpdateProcessingDetails(ctx context.Context, id model.VideoID, status model.VideoStatus, storagePath string) (err error) {
+
+	if strings.EqualFold(storagePath, "") {
+		err = fluxerrors.ErrMalformedStoragePath
+		return
+	}
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidVideoID
+		return
+	}
+
+	if !status.IsAcceptable() {
+		err = fluxerrors.ErrInvalidVideoStatus
+		return
+	}
+
+	updateData := map[string]any{
+		"storage_path": storagePath,
+		"status":       status.String(),
+		"retry_count":  0,
+	}
+
+	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
+
+	if tx.Error != nil {
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
+	}
+
+	if tx.RowsAffected == 0 {
+		err = fluxerrors.ErrVideoNotFound
+		return
+	}
+
+	return
+
+}
+
+func (r *VideoMetaRepository) GetVideoByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidVideoID
+		return
+	}
+
+	data := &tables.Video{}
+
+	tx := r.db.DB.First(data, "id = ?", uuid)
+
+	if tx.Error != nil {
+		if tx.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrVideoNotFound
+			return
+		}
+
+		return
+	}
+
+	video = model.Video{
+		ID:         model.VideoID(data.ID.String()),
+		Title:      data.Title,
+		UserID:     data.UserID,
+		Status:     model.VideoStatus(data.Status),
+		Visibility: model.VideoVisibility(data.Visibility),
+		Slug:       data.Slug,
+		RetryCount: data.RetryCount,
+		CreatedAt:  data.CreatedAt,
+		UpdatedAt:  data.UpdatedAt,
+		IsFeatured: data.IsFeatured,
+	}
+
+	return
+}
+
+func (r *VideoMetaRepository) CheckVideoExistsByID(ctx context.Context, id model.VideoID) (exists bool, err error) {
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidVideoID
+		return
+	}
+
+	tx := r.db.DB.Model(&tables.Video{}).Select("count(*) > 0").Where("id = ?", uuid).Find(&exists)
+
+	if tx.Error != nil {
+		if tx.Error == gorm.ErrRecordNotFound {
+			err = nil
+			return
+		}
+
+		return
+	}
+
+	return
+}
+
+// Returns the details required for video processing.
+func (r *VideoMetaRepository) GetProcessingDetailsByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {
+	uuid, err := uuid.Parse(id.String())
+
+	if err != nil {
+		err = fluxerrors.ErrInvalidVideoID
+		return
+	}
+
+	tableVid := tables.Video{}
+
+	tx := r.db.DB.Model(&tables.Video{}).Select("id, title, is_featured, storage_path, status, created_at, updated_at, retry_count").Where("id = ?", uuid).Find(&tableVid)
+
+	if tx.Error != nil {
+		if tx.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrVideoNotFound
+			return
+		}
+
+		return
+	}
+
+	video = model.Video{
+		ID:          model.VideoID(tableVid.ID.String()),
+		IsFeatured:  tableVid.IsFeatured,
+		Status:      model.VideoStatus(tableVid.Status),
+		StoragePath: tableVid.StoragePath,
+		CreatedAt:   tableVid.CreatedAt,
+		UpdatedAt:   tableVid.UpdatedAt,
+		RetryCount:  tableVid.RetryCount,
 	}
 
 	return

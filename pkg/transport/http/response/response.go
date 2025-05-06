@@ -49,7 +49,14 @@ type SuccessResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// Error sends a standardized error response
+// Error sends a standardized error response to the client
+// Parameters:
+//   - c: The Gin context which manages the HTTP request and response
+//   - status: HTTP status code to return (e.g., 400, 404, 500)
+//   - message: Short description of the error suitable for end users
+//   - details: Additional information about the error, useful for debugging
+//
+// Returns: Sends a JSON response with the error information and sets the HTTP status code
 func Error(c *gin.Context, status int, message string, details string) {
 	c.JSON(status, ErrorResponse{
 		Status:  status,

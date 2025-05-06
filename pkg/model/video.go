@@ -50,6 +50,10 @@ func (s VideoVisibility) String() string {
 	return string(s)
 }
 
+func (s VideoID) String() string {
+	return string(s)
+}
+
 // This function checks if the video visibility is of a valid value.
 func (s VideoVisibility) IsAcceptable() bool {
 	switch s {
