@@ -39,23 +39,7 @@ services:
       timeout: 20s
       retries: 3
     restart: unless-stopped
-    
-  # MinIO Client (mc) for bucket setup
-  minio-setup:
-    image: minio/mc
-    container_name: fluxio-minio-setup
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      sleep 10;
-      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
-      /usr/bin/mc mb --ignore-existing myminio/videos;
-      /usr/bin/mc mb --ignore-existing myminio/thumbnails;
-      /usr/bin/mc admin config set myminio notify_webhook:1 endpoint=http://host.docker.internal:8080/api/minio/events;
-      /usr/bin/mc event add myminio/videos arn:minio:sqs::1:webhook --event put;
-      exit 0;
-      "
+    network_mode: "host"
 
 volumes:
   postgres_data:
