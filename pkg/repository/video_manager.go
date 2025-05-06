@@ -57,14 +57,14 @@ func NewVideoManagerRepository(db *pgsql.PgSQL, cfg VideoManagerRepositoryConfig
 }
 
 func (v *VideoManagerRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
-	///metadata := map[string]*string{
-	///	"video_id": aws.String(string(id)),
-	//}
+	metadata := map[string]*string{
+		"video_id": aws.String(string(id)),
+	}
 
 	s3Request, _ := v.awsS3.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: aws.String(v.bucketName),
-		Key:    aws.String(slug),
-		//Metadata:    metadata,
+		Bucket:      aws.String(v.bucketName),
+		Key:         aws.String(slug),
+		Metadata:    metadata,
 		ContentType: aws.String("application/octet-stream"),
 	})
 
