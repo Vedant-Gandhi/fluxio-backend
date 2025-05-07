@@ -205,17 +205,16 @@ func (r *VideoMetaRepository) CheckVideoExistsByID(ctx context.Context, id model
 }
 
 // Returns the details required for video processing.
-func (r *VideoMetaRepository) GetProcessingDetailsByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {
-	uuid, err := uuid.Parse(id.String())
+func (r *VideoMetaRepository) GetProcessingDetailsBySlug(ctx context.Context, slug string) (video model.Video, err error) {
 
-	if err != nil {
-		err = fluxerrors.ErrInvalidVideoID
+	if strings.EqualFold(slug, "") {
+		err = fluxerrors.ErrInvalidVideoSlug
 		return
 	}
 
 	tableVid := tables.Video{}
 
-	tx := r.db.DB.Model(&tables.Video{}).Select("id, title, is_featured, storage_path, status, created_at, updated_at, retry_count").Where("id = ?", uuid).Find(&tableVid)
+	tx := r.db.DB.Model(&tables.Video{}).Select("id, title, is_featured, storage_path, status, created_at, updated_at, retry_count").Where("slug = ?", slug).Find(&tableVid)
 
 	if tx.Error != nil {
 		if tx.Error == gorm.ErrRecordNotFound {

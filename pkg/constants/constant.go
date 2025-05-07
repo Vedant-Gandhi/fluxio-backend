@@ -1,9 +1,11 @@
 package constants
 
+import "time"
+
 // Auth related constants
 const (
 	AuthTokenCookieName = "auth_token"
-	AuthTokenCookieExp  = 8 * 3600 // 8 hours
+	AuthTokenCookieExp  = int(8 * time.Hour) // 8 hours
 )
 
 // Gin related constants
@@ -14,4 +16,8 @@ const (
 const (
 	MaxVideoURLRegenerateRetryCount       = 4
 	MaxVideoThumbnailRegenerateRetryCount = 3
+)
+
+const (
+	PreSignedVidUploadURLExpireTime = 1 * time.Hour
 )

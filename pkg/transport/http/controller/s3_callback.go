@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
 	"fmt"
@@ -35,12 +34,12 @@ func (s *S3CallbackController) HandleVideoUploadEvent(c *gin.Context) {
 	for _, record := range event.Records {
 
 		// Check if the event if object put and the bucket matches
-		if strings.EqualFold(record.EventName, "ObjectCreated:Put") && strings.EqualFold(record.S3.Bucket.Name, s.bucketName) {
+		if strings.EqualFold(record.EventName, "s3:ObjectCreated:Put") && strings.EqualFold(record.S3.Bucket.Name, s.bucketName) {
 
 			// Clean the object name to get the key with ID.
-			videoID := strings.Replace(record.S3.Object.Key, fmt.Sprintf("%s/", s.bucketName), "", 1)
+			videoSlug := strings.Replace(record.S3.Object.Key, fmt.Sprintf("%s/", s.bucketName), "", 1)
 
-			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), model.VideoID(videoID), record.S3.Object.Key)
+			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), videoSlug, record.S3.Object.Key)
 
 			// TODO: Add service logger
 			if err != nil {

@@ -42,6 +42,7 @@ var (
 	ErrVideoAlreadyExists  = errors.New("video already exists")
 	ErrVideoCreationFailed = errors.New("failed to create video")
 	ErrInvalidVideoID      = errors.New("video id is invalid")
+	ErrInvalidVideoSlug    = errors.New("video slug is invalid")
 	ErrInvalidVideoStatus  = errors.New("video status is not valid")
 
 	ErrDuplicateVideoTitle = errors.New("video title already exists")
