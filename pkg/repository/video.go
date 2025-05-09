@@ -2,27 +2,63 @@ package repository
 
 import (
 	"context"
+	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
 	"fluxio-backend/pkg/repository/pgsql/tables"
 	"fluxio-backend/pkg/utils"
+	"fmt"
+	"net/url"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type VideoMetaRepository struct {
+type VideoRepository struct {
 	db *pgsql.PgSQL
+
+	s3Client   *s3.S3
+	bucketName string
 }
 
-func NewVideoMetaRepository(db *pgsql.PgSQL) *VideoMetaRepository {
-
-	return &VideoMetaRepository{db: db}
+type VideoRepositoryConfig struct {
+	S3BucketName string
+	S3Region     string
+	S3AccessKey  string
+	S3SecretKey  string
+	S3Endpoint   string
 }
 
-func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
+func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoRepository {
+
+	url, _ := url.Parse(cfg.S3Endpoint)
+
+	awsConfig := &aws.Config{
+		Region:      aws.String(cfg.S3Region),
+		Credentials: credentials.NewStaticCredentials(cfg.S3AccessKey, cfg.S3SecretKey, ""),
+	}
+
+	if !strings.EqualFold(url.Host, "") {
+
+		awsConfig.Endpoint = aws.String(url.String())
+		awsConfig.DisableSSL = aws.Bool(strings.EqualFold(url.Scheme, "http"))
+		awsConfig.S3ForcePathStyle = aws.Bool(true)
+	}
+
+	awsSession, _ := session.NewSession(awsConfig)
+
+	s3Client := s3.New(awsSession)
+
+	return &VideoRepository{db: db, s3Client: s3Client, bucketName: cfg.S3BucketName}
+}
+
+func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
 
 	if strings.EqualFold(videoMeta.Visibility.String(), "") {
 		videoMeta.Visibility = model.VideoVisibilityPublic
@@ -84,7 +120,7 @@ func (r *VideoMetaRepository) CreateVideoMeta(ctx context.Context, videoMeta mod
 
 	return
 }
-func (r *VideoMetaRepository) IncrementVideoRetryCount(ctx context.Context, videoID model.VideoID) (err error) {
+func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID model.VideoID) (err error) {
 	vidTable := &tables.Video{}
 
 	tx := r.db.DB.WithContext(ctx).Model(vidTable).
@@ -106,7 +142,7 @@ func (r *VideoMetaRepository) IncrementVideoRetryCount(ctx context.Context, vide
 }
 
 // UpdateMeta updates video metadata with the provided parameters
-func (r *VideoMetaRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
+func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
 	// Parse the VideoID to UUID
 	uuid, err := uuid.Parse(id.String())
 	if err != nil {
@@ -142,7 +178,7 @@ func (r *VideoMetaRepository) UpdateMeta(ctx context.Context, id model.VideoID, 
 
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoMetaRepository) buildUpdateDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 
@@ -226,7 +262,7 @@ func (r *VideoMetaRepository) buildUpdateDataMap(status model.VideoStatus, param
 	return updateData
 }
 
-func (r *VideoMetaRepository) GetVideoByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {
+func (r *VideoRepository) GetVideoByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {
 	uuid, err := uuid.Parse(id.String())
 
 	if err != nil {
@@ -263,7 +299,7 @@ func (r *VideoMetaRepository) GetVideoByID(ctx context.Context, id model.VideoID
 	return
 }
 
-func (r *VideoMetaRepository) CheckVideoExistsByID(ctx context.Context, id model.VideoID) (exists bool, err error) {
+func (r *VideoRepository) CheckVideoExistsByID(ctx context.Context, id model.VideoID) (exists bool, err error) {
 	uuid, err := uuid.Parse(id.String())
 
 	if err != nil {
@@ -286,7 +322,7 @@ func (r *VideoMetaRepository) CheckVideoExistsByID(ctx context.Context, id model
 }
 
 // Returns the details required for video processing.
-func (r *VideoMetaRepository) GetProcessingDetailsBySlug(ctx context.Context, slug string) (video model.Video, err error) {
+func (r *VideoRepository) GetProcessingDetailsBySlug(ctx context.Context, slug string) (video model.Video, err error) {
 
 	if strings.EqualFold(slug, "") {
 		err = fluxerrors.ErrInvalidVideoSlug
@@ -317,4 +353,38 @@ func (r *VideoMetaRepository) GetProcessingDetailsBySlug(ctx context.Context, sl
 	}
 
 	return
+}
+
+func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
+
+	path := v.generateFileS3Path(slug)
+	// Remove the bucket name from the path to avoid double prefixing.
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.bucketName))
+
+	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
+		Bucket:      aws.String(v.bucketName),
+		Key:         aws.String(path),
+		ContentType: aws.String("application/octet-stream"),
+	})
+
+	rawURL, err := s3Request.Presign(constants.PreSignedVidUploadURLExpireTime)
+
+	if err != nil {
+		err = fluxerrors.ErrVideoURLGenerationFailed
+		return
+	}
+
+	url, _ = url.Parse(rawURL)
+
+	return
+}
+
+func (v *VideoRepository) GetVideoFileMeta(ctx context.Context, slug string) (err error) {
+
+	return
+
+}
+
+func (v *VideoRepository) generateFileS3Path(slug string) string {
+	return fmt.Sprintf("%s/%s", v.bucketName, strings.TrimRight(slug, "/"))
 }

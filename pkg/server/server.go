@@ -31,16 +31,13 @@ func NewServer() {
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 
-	videoMetaRepo := repository.NewVideoMetaRepository(db)
-	videoManagerRepo := repository.NewVideoManagerRepository(
-		db,
-		repository.VideoManagerRepositoryConfig{
-			S3BucketName: cfg.VideoCfg.S3BucketName,
-			S3Region:     cfg.VideoCfg.S3Region,
-			S3AccessKey:  cfg.VideoCfg.S3AccessKey,
-			S3SecretKey:  cfg.VideoCfg.S3SecretKey,
-			S3Endpoint:   cfg.VideoCfg.S3Endpoint,
-		})
+	videoRepo := repository.NewVideoRepository(db, repository.VideoRepositoryConfig{
+		S3BucketName: cfg.VideoCfg.S3BucketName,
+		S3Region:     cfg.VideoCfg.S3Region,
+		S3AccessKey:  cfg.VideoCfg.S3AccessKey,
+		S3SecretKey:  cfg.VideoCfg.S3SecretKey,
+		S3Endpoint:   cfg.VideoCfg.S3Endpoint,
+	})
 
 	// Services
 	if cfg.JWT.Secret == "" {
@@ -50,7 +47,7 @@ func NewServer() {
 
 	jwtService := service.NewJWTService(cfg.JWT.Secret)
 	userService := service.NewUserService(userRepo, jwtService)
-	videoService := service.NewVideoService(videoMetaRepo, videoManagerRepo)
+	videoService := service.NewVideoService(videoRepo)
 
 	// Middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService)
