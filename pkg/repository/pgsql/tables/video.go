@@ -9,7 +9,7 @@ import (
 
 type Video struct {
 	ID              uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Title           string         `gorm:"not null;unique" json:"title"`
+	Title           string         `gorm:"not null" json:"title"` // Removed unique constraint
 	Description     string         `gorm:"not null" json:"description"`
 	ParentID        *uuid.UUID     `gorm:"type:uuid" json:"parent_id,omitempty"` // Should be nullable for original videos
 	Width           uint32         `json:"width"`                                // Will be unknown during upload
@@ -26,8 +26,8 @@ type Video struct {
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"` // Should be nullable
 	IsFeatured      bool           `gorm:"default:false" json:"is_featured,omitempty"`
 	Visibility      string         `gorm:"not null" json:"visibility"`
-	Slug            string         `gorm:"unique;not null" json:"slug"`
-	Size            uint64         `json:"size"`     // Will be unknown during initial upload
-	Language        string         `json:"language"` // Might be unknown initially
-	StoragePath     string         `gorm:"default:""" json:"storage_path"`
+	Slug            string         `gorm:"unique;not null" json:"slug"` // Already has unique and not null constraints
+	Size            uint64         `json:"size"`                        // Will be unknown during initial upload
+	Language        string         `json:"language"`                    // Might be unknown initially
+	StoragePath     string         `gorm:"default:''" json:"storage_path"`
 }

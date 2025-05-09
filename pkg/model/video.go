@@ -50,6 +50,10 @@ func (s VideoVisibility) String() string {
 	return string(s)
 }
 
+func (s VideoID) String() string {
+	return string(s)
+}
+
 // This function checks if the video visibility is of a valid value.
 func (s VideoVisibility) IsAcceptable() bool {
 	switch s {
@@ -78,6 +82,27 @@ type Video struct {
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 	DeletedAt       *time.Time      `json:"deleted_at,omitempty"`
+	IsFeatured      bool            `json:"is_featured,omitempty"`
+	Visibility      VideoVisibility `json:"visibility"`
+	Slug            string          `json:"slug"`
+	Size            uint64          `json:"size"`
+	Language        string          `json:"language"`
+	ResourceURL     url.URL         `json:"resource_url"`
+	StoragePath     string          `json:"-"`
+}
+
+type UpdateVideoMeta struct {
+	Title           string          `json:"title"`
+	Description     string          `json:"description"`
+	ParentID        *uuid.UUID      `json:"parent_id,omitempty"`
+	Width           uint32          `json:"width"`
+	Height          uint32          `json:"height"`
+	Format          string          `json:"format"`
+	Length          uint64          `json:"length"`
+	AudioSampleRate uint32          `json:"audio_sample_rate"`
+	AudioCodec      string          `json:"audio_codec"`
+	RetryCount      uint8           `json:"retry_count"`
+	Status          VideoStatus     `json:"status"`
 	IsFeatured      bool            `json:"is_featured,omitempty"`
 	Visibility      VideoVisibility `json:"visibility"`
 	Slug            string          `json:"slug"`

@@ -39,6 +39,7 @@ func NewServer() {
 			S3Region:     cfg.VideoCfg.S3Region,
 			S3AccessKey:  cfg.VideoCfg.S3AccessKey,
 			S3SecretKey:  cfg.VideoCfg.S3SecretKey,
+			S3Endpoint:   cfg.VideoCfg.S3Endpoint,
 		})
 
 	// Services
@@ -58,10 +59,12 @@ func NewServer() {
 	// Controllers
 	authController := controller.NewAuthController(userService)
 	videoController := controller.NewVideoController(videoService)
+	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3BucketName, videoService)
 
 	// Route registrars
 	authRouter := routes.NewAuthRouter(authController, middleware)
 	videoRouter := routes.NewVideoRouter(videoController, middleware)
+	s3Router := routes.NewAWSCallbackRouter(s3Controller, middleware)
 
 	// Create and start HTTP router
 	router := http.NewRouter(
@@ -71,6 +74,7 @@ func NewServer() {
 		},
 		authRouter,  // Pass the auth router as a route registrar
 		videoRouter, // Pass the video router as a route registrar
+		s3Router,
 	)
 
 	// Start the server

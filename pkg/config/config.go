@@ -15,7 +15,7 @@ type Config struct {
 	Server   ServerConfig   `env:"SERVER"`
 	Database DatabaseConfig `env:"DB"`
 	JWT      JWTConfig      `env:"JWT"`
-	VideoCfg VideoS3Config  `env:"VIDEO"`
+	VideoCfg VideoConfig    `env:"VIDEO"`
 }
 
 type ServerConfig struct {
@@ -37,11 +37,13 @@ type JWTConfig struct {
 	Secret string `env:"SECRET" default:""`
 }
 
-type VideoS3Config struct {
-	S3BucketName string `env:"BUCKET_NAME" default:""`
-	S3Region     string `env:"BUCKET_REGION" default:""`
-	S3AccessKey  string `env:"BUCKET_ACCESS_KEY" default:""`
-	S3SecretKey  string `env:"BUCKET_SECRET_KEY" default:""`
+type VideoConfig struct {
+	S3BucketName           string `env:"BUCKET_NAME" default:""`
+	S3Region               string `env:"BUCKET_REGION" default:""`
+	S3AccessKey            string `env:"BUCKET_ACCESS_KEY" default:""`
+	S3SecretKey            string `env:"BUCKET_SECRET_KEY" default:""`
+	S3UploadCallbackSecret string `env:"BUCKET_UPLOAD_CALLBACK_SECRET" default:""`
+	S3Endpoint             string `env:"BUCKET_ENDPOINT" default:""`
 }
 
 const envPrefix = "FLUXIO"

@@ -2,14 +2,12 @@ package service
 
 import (
 	"context"
+	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository"
 	"net/url"
-)
-
-const (
-	MAX_VIDEO_RETRY_COUNT = 4
+	"strings"
 )
 
 type VideoService struct {
@@ -32,7 +30,7 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	// Disallow upload if the video is not in a pending state or if the retry count is greater than 3.
-	if video.RetryCount > MAX_VIDEO_RETRY_COUNT || video.Status != model.VideoStatusPending {
+	if video.RetryCount > constants.MaxVideoURLRegenerateRetryCount || video.Status != model.VideoStatusPending {
 		err = fluxerrors.ErrVideoUploadNotAllowed
 		return
 	}
@@ -51,5 +49,59 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 
 	url = *ptrURL
 
+	return
+}
+
+// Handles the meta update after the video file is uploaded.
+func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.UpdateVideoMeta) (err error) {
+	if strings.EqualFold(params.StoragePath, "") {
+		err = fluxerrors.ErrMalformedStoragePath
+		return
+	}
+
+	if strings.EqualFold(slug, "") {
+		err = fluxerrors.ErrInvalidVideoSlug
+		return
+	}
+
+	existData, err := s.metaRepo.GetProcessingDetailsBySlug(ctx, slug)
+
+	if err != nil {
+		if err == fluxerrors.ErrVideoNotFound {
+			return
+		}
+
+		err = fluxerrors.ErrUnknown
+		return
+	}
+
+	// If video status is not pending or retry limit is over end it.
+	if existData.Status != model.VideoStatusPending || existData.RetryCount > constants.MaxVideoURLRegenerateRetryCount {
+		err = fluxerrors.ErrInvalidVideoStatus
+		return
+	}
+
+	err = s.metaRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
+		StoragePath: params.StoragePath,
+	})
+
+	if err != nil {
+		if err == fluxerrors.ErrInvalidVideoID || err == fluxerrors.ErrMalformedStoragePath {
+			return
+		}
+
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
+	}
+
+	return
+}
+
+// Performs all the post upload processing for the video.
+func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, id model.VideoID) (err error) {
+
+	// Extract the whole video meta data like size, type, width, height,etc
+
+	// Create thumbnails for the video and store them in the db
 	return
 }
