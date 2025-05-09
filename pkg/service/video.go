@@ -11,19 +11,17 @@ import (
 )
 
 type VideoService struct {
-	metaRepo    *repository.VideoMetaRepository
-	managerRepo *repository.VideoManagerRepository
+	videRepo *repository.VideoRepository
 }
 
-func NewVideoService(metaRepo *repository.VideoMetaRepository, mngerRepo *repository.VideoManagerRepository) *VideoService {
+func NewVideoService(videRepo *repository.VideoRepository) *VideoService {
 	return &VideoService{
-		metaRepo:    metaRepo,
-		managerRepo: mngerRepo,
+		videRepo: videRepo,
 	}
 }
 
 func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
-	video, err = s.metaRepo.CreateVideoMeta(ctx, vidMeta)
+	video, err = s.videRepo.CreateVideoMeta(ctx, vidMeta)
 
 	if err != nil {
 		return
@@ -36,11 +34,11 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	// Generate the upload URL for the video.
-	ptrURL, err := s.managerRepo.GenerateVideoUploadURL(ctx, video.ID, video.Slug)
+	ptrURL, err := s.videRepo.GenerateVideoUploadURL(ctx, video.ID, video.Slug)
 
 	if err != nil {
 		err = fluxerrors.ErrVideoURLGenerationFailed
-		_ = s.metaRepo.IncrementVideoRetryCount(ctx, video.ID)
+		_ = s.videRepo.IncrementVideoRetryCount(ctx, video.ID)
 
 		// Prevent returning the video if the url generation fails.
 		video = model.Video{}
@@ -64,7 +62,7 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, para
 		return
 	}
 
-	existData, err := s.metaRepo.GetProcessingDetailsBySlug(ctx, slug)
+	existData, err := s.videRepo.GetProcessingDetailsBySlug(ctx, slug)
 
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
@@ -81,7 +79,7 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, para
 		return
 	}
 
-	err = s.metaRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
+	err = s.videRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
 		StoragePath: params.StoragePath,
 	})
 
