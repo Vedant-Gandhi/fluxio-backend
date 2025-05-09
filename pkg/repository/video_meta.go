@@ -105,44 +105,125 @@ func (r *VideoMetaRepository) IncrementVideoRetryCount(ctx context.Context, vide
 	return
 }
 
-func (r *VideoMetaRepository) UpdateProcessingDetails(ctx context.Context, id model.VideoID, status model.VideoStatus, storagePath string) (err error) {
-
-	if strings.EqualFold(storagePath, "") {
-		err = fluxerrors.ErrMalformedStoragePath
-		return
-	}
+// UpdateMeta updates video metadata with the provided parameters
+func (r *VideoMetaRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
+	// Parse the VideoID to UUID
 	uuid, err := uuid.Parse(id.String())
-
 	if err != nil {
-		err = fluxerrors.ErrInvalidVideoID
-		return
+		return fluxerrors.ErrInvalidVideoID
 	}
 
+	// Validate the video status
 	if !status.IsAcceptable() {
-		err = fluxerrors.ErrInvalidVideoStatus
-		return
+		return fluxerrors.ErrInvalidVideoStatus
 	}
 
-	updateData := map[string]any{
-		"storage_path": storagePath,
-		"status":       status.String(),
-		"retry_count":  0,
+	// Validate storage path
+	if strings.EqualFold(params.StoragePath, "") {
+		return fluxerrors.ErrMalformedStoragePath
 	}
 
+	// Create a map of fields to update based on the params struct
+	updateData := r.buildUpdateDataMap(status, params)
+
+	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
 
 	if tx.Error != nil {
-		err = fluxerrors.ErrVideoMetaUpdateFailed
-		return
+		return fluxerrors.ErrVideoMetaUpdateFailed
 	}
 
 	if tx.RowsAffected == 0 {
-		err = fluxerrors.ErrVideoNotFound
-		return
+		return fluxerrors.ErrVideoNotFound
 	}
 
-	return
+	return nil
+}
 
+// buildUpdateDataMap is a private helper method that constructs the update data map
+// from the provided status and UpdateVideoMeta parameters
+func (r *VideoMetaRepository) buildUpdateDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+	// Initialize with status and reset retry count
+	updateData := map[string]interface{}{}
+
+	// Add StoragePath from params
+	updateData["storage_path"] = params.StoragePath
+
+	// Add other fields from params, only if they're not zero values
+	// Title
+	if !strings.EqualFold(params.Title, "") {
+		updateData["title"] = params.Title
+	}
+
+	// Description
+	if !strings.EqualFold(params.Description, "") {
+		updateData["description"] = params.Description
+	}
+
+	// ParentID
+	if params.ParentID != nil {
+		updateData["parent_id"] = params.ParentID.String()
+	}
+
+	// Width
+	if params.Width > 0 {
+		updateData["width"] = params.Width
+	}
+
+	// Height
+	if params.Height > 0 {
+		updateData["height"] = params.Height
+	}
+
+	// Format
+	if !strings.EqualFold(params.Format, "") {
+		updateData["format"] = params.Format
+	}
+
+	// Status
+	if !strings.EqualFold(params.Status.String(), "") {
+		updateData["status"] = params.Status.String()
+	}
+
+	// Length
+	if params.Length > 0 {
+		updateData["length"] = params.Length
+	}
+
+	// AudioSampleRate
+	if params.AudioSampleRate > 0 {
+		updateData["audio_sample_rate"] = params.AudioSampleRate
+	}
+
+	// AudioCodec
+	if !strings.EqualFold(params.AudioCodec, "") {
+		updateData["audio_codec"] = params.AudioCodec
+	}
+
+	// IsFeatured - this is a boolean, so we always include it
+	updateData["is_featured"] = params.IsFeatured
+
+	// Visibility - only update if valid
+	if params.Visibility.IsAcceptable() {
+		updateData["visibility"] = params.Visibility.String()
+	}
+
+	// Slug
+	if !strings.EqualFold(params.Slug, "") {
+		updateData["slug"] = params.Slug
+	}
+
+	// Size
+	if params.Size > 0 {
+		updateData["size"] = params.Size
+	}
+
+	// Language
+	if !strings.EqualFold(params.Language, "") {
+		updateData["language"] = params.Language
+	}
+
+	return updateData
 }
 
 func (r *VideoMetaRepository) GetVideoByID(ctx context.Context, id model.VideoID) (video model.Video, err error) {

@@ -53,8 +53,8 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 }
 
 // Handles the meta update after the video file is uploaded.
-func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, storagePath string) (err error) {
-	if strings.EqualFold(storagePath, "") {
+func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.UpdateVideoMeta) (err error) {
+	if strings.EqualFold(params.StoragePath, "") {
 		err = fluxerrors.ErrMalformedStoragePath
 		return
 	}
@@ -81,7 +81,9 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, stor
 		return
 	}
 
-	err = s.metaRepo.UpdateProcessingDetails(ctx, existData.ID, model.VideoStatusProcessing, storagePath)
+	err = s.metaRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
+		StoragePath: params.StoragePath,
+	})
 
 	if err != nil {
 		if err == fluxerrors.ErrInvalidVideoID || err == fluxerrors.ErrMalformedStoragePath {
@@ -92,5 +94,14 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, stor
 		return
 	}
 
+	return
+}
+
+// Performs all the post upload processing for the video.
+func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, id model.VideoID) (err error) {
+
+	// Extract the whole video meta data like size, type, width, height,etc
+
+	// Create thumbnails for the video and store them in the db
 	return
 }

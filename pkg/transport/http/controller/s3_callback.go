@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
 	"fmt"
@@ -39,7 +40,9 @@ func (s *S3CallbackController) HandleVideoUploadEvent(c *gin.Context) {
 			// Clean the object name to get the key with ID.
 			videoSlug := strings.Replace(record.S3.Object.Key, fmt.Sprintf("%s/", s.bucketName), "", 1)
 
-			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), videoSlug, record.S3.Object.Key)
+			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), videoSlug, model.UpdateVideoMeta{
+				StoragePath: record.S3.Object.Key,
+			})
 
 			// TODO: Add service logger
 			if err != nil {

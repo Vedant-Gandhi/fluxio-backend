@@ -6,6 +6,7 @@ import (
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -54,9 +55,13 @@ func NewVideoManagerRepository(db *pgsql.PgSQL, cfg VideoManagerRepositoryConfig
 
 func (v *VideoManagerRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
 
+	path := v.generateFileS3Path(slug)
+	// Remove the bucket name from the path to avoid double prefixing.
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.bucketName))
+
 	s3Request, _ := v.awsS3.PutObjectRequest(&s3.PutObjectInput{
 		Bucket:      aws.String(v.bucketName),
-		Key:         aws.String(slug),
+		Key:         aws.String(path),
 		ContentType: aws.String("application/octet-stream"),
 	})
 
@@ -70,4 +75,14 @@ func (v *VideoManagerRepository) GenerateVideoUploadURL(ctx context.Context, id 
 	url, _ = url.Parse(rawURL)
 
 	return
+}
+
+func (v *VideoManagerRepository) GetVideoFileMeta(ctx context.Context, slug string) (err error) {
+
+	return
+
+}
+
+func (v *VideoManagerRepository) generateFileS3Path(slug string) string {
+	return fmt.Sprintf("%s/%s", v.bucketName, strings.TrimRight(slug, "/"))
 }
