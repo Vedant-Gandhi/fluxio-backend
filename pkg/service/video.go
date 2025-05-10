@@ -115,6 +115,11 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		return
 	}
 
+	if videoMeta.Status != model.VideoStatusProcessing {
+		err = fluxerrors.ErrInvalidVideoStatus
+		return
+	}
+
 	downloadURL, err := s.videRepo.GetVideoTemporaryDownloadURL(ctx, videoMeta.Slug)
 
 	if err != nil {
@@ -188,6 +193,16 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	}
 
 	updateData.Length = uint64(math.Ceil(duration))
+
+	size, err := strconv.ParseFloat(probe.Format.Size, 64)
+
+	if err != nil {
+		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
+		return
+	}
+
+	calcPrec := math.Pow(10, float64(constants.VidSizeDecimalPrecision)) // Stores the power precision to round the size.
+	updateData.Size = float32(math.Round(size*calcPrec) / calcPrec)      // Round the size to decimal places.
 
 	err = s.videRepo.UpdateMeta(ctx, videoMeta.ID, model.VideoStatusMetaExtracted, updateData)
 	if err != nil {

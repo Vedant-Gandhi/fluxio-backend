@@ -27,7 +27,7 @@ type Video struct {
 	IsFeatured      bool           `gorm:"default:false" json:"is_featured,omitempty"`
 	Visibility      string         `gorm:"not null" json:"visibility"`
 	Slug            string         `gorm:"unique;not null" json:"slug"` // Already has unique and not null constraints
-	Size            uint64         `json:"size"`                        // Will be unknown during initial upload
+	Size            float32        `json:"size"`                        // Will be unknown during initial upload. Size is in kb
 	Language        string         `json:"language"`                    // Might be unknown initially
 	StoragePath     string         `gorm:"default:''" json:"storage_path"`
 }
