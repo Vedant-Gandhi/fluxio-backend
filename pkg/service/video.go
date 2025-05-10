@@ -115,6 +115,11 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		return
 	}
 
+	if videoMeta.Status != model.VideoStatusProcessing {
+		err = fluxerrors.ErrInvalidVideoStatus
+		return
+	}
+
 	downloadURL, err := s.videRepo.GetVideoTemporaryDownloadURL(ctx, videoMeta.Slug)
 
 	if err != nil {
