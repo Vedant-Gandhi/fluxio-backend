@@ -5,7 +5,7 @@ import "time"
 // Auth related constants
 const (
 	AuthTokenCookieName = "auth_token"
-	AuthTokenCookieExp  = int(8 * time.Hour) // 8 hours
+	AuthTokenCookieExp  = int(8 * 60 * 60) // 8 hours
 )
 
 // Gin related constants
@@ -21,4 +21,8 @@ const (
 const (
 	PreSignedVidUploadURLExpireTime       = 1 * time.Hour
 	PreSignedVidTempDownloadURLExpireTime = 1 * time.Hour
+)
+
+const (
+	VidSizeDecimalPrecision = 3
 )
