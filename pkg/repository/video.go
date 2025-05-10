@@ -212,8 +212,8 @@ func (r *VideoRepository) buildUpdateDataMap(status model.VideoStatus, params mo
 	}
 
 	// Status
-	if !strings.EqualFold(params.Status.String(), "") {
-		updateData["status"] = params.Status.String()
+	if status.IsAcceptable() {
+		updateData["status"] = status.String()
 	}
 
 	// Length
