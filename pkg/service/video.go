@@ -189,6 +189,15 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 
 	updateData.Length = uint64(math.Ceil(duration))
 
+	size, err := strconv.ParseFloat(probe.Format.Size, 64)
+
+	if err != nil {
+		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
+		return
+	}
+
+	updateData.Size = float32(size / 1024) // Convert bytes to KB
+
 	err = s.videRepo.UpdateMeta(ctx, videoMeta.ID, model.VideoStatusMetaExtracted, updateData)
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
