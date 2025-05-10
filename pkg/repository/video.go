@@ -2,13 +2,11 @@ package repository
 
 import (
 	"context"
-	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
 	"fluxio-backend/pkg/repository/pgsql/tables"
 	"fluxio-backend/pkg/utils"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -154,11 +152,6 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 		return fluxerrors.ErrInvalidVideoStatus
 	}
 
-	// Validate storage path
-	if strings.EqualFold(params.StoragePath, "") {
-		return fluxerrors.ErrMalformedStoragePath
-	}
-
 	// Create a map of fields to update based on the params struct
 	updateData := r.buildUpdateDataMap(status, params)
 
@@ -183,7 +176,9 @@ func (r *VideoRepository) buildUpdateDataMap(status model.VideoStatus, params mo
 	updateData := map[string]interface{}{}
 
 	// Add StoragePath from params
-	updateData["storage_path"] = params.StoragePath
+	if !strings.EqualFold(params.StoragePath, "") {
+		updateData["storage_path"] = params.StoragePath
+	}
 
 	// Add other fields from params, only if they're not zero values
 	// Title
@@ -299,6 +294,37 @@ func (r *VideoRepository) GetVideoByID(ctx context.Context, id model.VideoID) (v
 	return
 }
 
+func (r *VideoRepository) GetVideoBySlug(ctx context.Context, slug string) (video model.Video, err error) {
+
+	data := &tables.Video{}
+
+	tx := r.db.DB.First(data, "slug = ?", slug)
+
+	if tx.Error != nil {
+		if tx.Error == gorm.ErrRecordNotFound {
+			err = fluxerrors.ErrVideoNotFound
+			return
+		}
+
+		return
+	}
+
+	video = model.Video{
+		ID:         model.VideoID(data.ID.String()),
+		Title:      data.Title,
+		UserID:     data.UserID,
+		Status:     model.VideoStatus(data.Status),
+		Visibility: model.VideoVisibility(data.Visibility),
+		Slug:       data.Slug,
+		RetryCount: data.RetryCount,
+		CreatedAt:  data.CreatedAt,
+		UpdatedAt:  data.UpdatedAt,
+		IsFeatured: data.IsFeatured,
+	}
+
+	return
+}
+
 func (r *VideoRepository) CheckVideoExistsByID(ctx context.Context, id model.VideoID) (exists bool, err error) {
 	uuid, err := uuid.Parse(id.String())
 
@@ -353,38 +379,4 @@ func (r *VideoRepository) GetProcessingDetailsBySlug(ctx context.Context, slug s
 	}
 
 	return
-}
-
-func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
-
-	path := v.generateFileS3Path(slug)
-	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.bucketName))
-
-	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket:      aws.String(v.bucketName),
-		Key:         aws.String(path),
-		ContentType: aws.String("application/octet-stream"),
-	})
-
-	rawURL, err := s3Request.Presign(constants.PreSignedVidUploadURLExpireTime)
-
-	if err != nil {
-		err = fluxerrors.ErrVideoURLGenerationFailed
-		return
-	}
-
-	url, _ = url.Parse(rawURL)
-
-	return
-}
-
-func (v *VideoRepository) GetVideoFileMeta(ctx context.Context, slug string) (err error) {
-
-	return
-
-}
-
-func (v *VideoRepository) generateFileS3Path(slug string) string {
-	return fmt.Sprintf("%s/%s", v.bucketName, strings.TrimRight(slug, "/"))
 }

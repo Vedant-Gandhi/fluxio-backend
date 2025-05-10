@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
@@ -44,10 +45,12 @@ func (s *S3CallbackController) HandleVideoUploadEvent(c *gin.Context) {
 				StoragePath: record.S3.Object.Key,
 			})
 
-			// TODO: Add service logger
 			if err != nil {
 				continue
 			}
+
+			// TODO: Add service logger
+			go s.vidSvc.PerformPostUploadProcessing(context.TODO(), videoSlug)
 
 		}
 	}

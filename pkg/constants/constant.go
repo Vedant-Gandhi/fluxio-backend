@@ -19,5 +19,6 @@ const (
 )
 
 const (
-	PreSignedVidUploadURLExpireTime = 1 * time.Hour
+	PreSignedVidUploadURLExpireTime       = 1 * time.Hour
+	PreSignedVidTempDownloadURLExpireTime = 1 * time.Hour
 )
