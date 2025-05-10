@@ -16,6 +16,7 @@ type VideoVisibility string
 const (
 	VideoStatusPending       VideoStatus = "pending"
 	VideoStatusProcessing    VideoStatus = "processing"
+	VideoStatusMetaExtracted VideoStatus = "meta_extracted"
 	VideoGeneratingThumbnail VideoStatus = "generating_thumbnail"
 	VideoStatusCompleted     VideoStatus = "completed"
 	VideoStatusFailed        VideoStatus = "failed"
@@ -31,6 +32,7 @@ func (s VideoStatus) IsAcceptable() bool {
 	switch s {
 	case VideoStatusPending,
 		VideoStatusProcessing,
+		VideoStatusMetaExtracted,
 		VideoGeneratingThumbnail,
 		VideoStatusCompleted,
 		VideoStatusFailed,

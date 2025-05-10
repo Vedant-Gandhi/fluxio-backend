@@ -54,4 +54,8 @@ var (
 	ErrVideoMetaUpdateFailed    = errors.New("failed to update the video meta")
 
 	ErrMalformedStoragePath = errors.New("storage path is malformed")
+
+	ErrVideoPhysicalMetaExtractionFailed = errors.New("failed to extract video physical meta data")
+
+	ErrVideoStreamCountNotSupported = errors.New("video stream count not supported")
 )
