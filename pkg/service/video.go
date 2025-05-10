@@ -7,7 +7,6 @@ import (
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository"
-	"fmt"
 	"math"
 	"net/url"
 	"strconv"
@@ -107,7 +106,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	videoMeta, err := s.videRepo.GetVideoBySlug(ctx, slug)
 
 	if err != nil {
-		fmt.Printf("Error when getting video by ID: %v\n", err)
+
 		if err == fluxerrors.ErrVideoNotFound {
 			return
 		}
@@ -119,7 +118,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	downloadURL, err := s.videRepo.GetVideoTemporaryDownloadURL(ctx, videoMeta.Slug)
 
 	if err != nil {
-		fmt.Printf("Error when generating download url: %v\n", err)
+
 		if err == fluxerrors.ErrVideoURLGenerationFailed {
 			return
 		}
@@ -132,7 +131,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	rawProbe, err := ffmpeg_go.Probe(downloadURL.String())
 
 	if err != nil {
-		fmt.Printf("Error when getting probe: %v\n", err)
+
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -142,7 +141,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	err = json.Unmarshal([]byte(rawProbe), &probe)
 
 	if err != nil {
-		fmt.Printf("Error when unmarshalling probe: %v\n", err)
+
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -191,9 +190,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	updateData.Length = uint64(math.Ceil(duration))
 
 	err = s.videRepo.UpdateMeta(ctx, videoMeta.ID, model.VideoStatusMetaExtracted, updateData)
-	fmt.Printf("Video meta data: %+v\n", updateData)
 	if err != nil {
-		fmt.Printf("Error when updating video meta data: %v\n", err)
 		if err == fluxerrors.ErrVideoNotFound {
 			return
 		}
@@ -201,8 +198,6 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		err = fluxerrors.ErrVideoMetaUpdateFailed
 		return
 	}
-
-	fmt.Println("Video meta data updated successfully")
 
 	// Create thumbnails for the video and store them in the db
 	return
