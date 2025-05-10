@@ -87,7 +87,7 @@ type Video struct {
 	IsFeatured      bool            `json:"is_featured,omitempty"`
 	Visibility      VideoVisibility `json:"visibility"`
 	Slug            string          `json:"slug"`
-	Size            uint64          `json:"size"`
+	Size            float32         `json:"size"`
 	Language        string          `json:"language"`
 	ResourceURL     url.URL         `json:"resource_url"`
 	StoragePath     string          `json:"-"`
