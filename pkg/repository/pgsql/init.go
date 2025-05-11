@@ -36,6 +36,7 @@ func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
 	// Automatically migrate the schema, keeping your database up to date.
 	db.AutoMigrate(&tables.User{})
 	db.AutoMigrate(&tables.Video{})
+	db.AutoMigrate(&tables.Thumbnail{})
 
 	return &PgSQL{
 		DB: db,
