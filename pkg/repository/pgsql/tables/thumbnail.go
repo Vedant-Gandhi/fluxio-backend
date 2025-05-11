@@ -10,8 +10,8 @@ import (
 type Thumbnail struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	VideoID     uuid.UUID      `gorm:"type:uuid;not null;index"`
-	Width       int            `gorm:"not null"`
-	Height      int            `gorm:"not null"`
+	Width       uint16         `gorm:"not null"`
+	Height      uint16         `gorm:"not null"`
 	Format      string         `gorm:"not null"`
 	Size        uint32         `gorm:"not null"` // Size in bytes
 	TimeStamp   uint64         `gorm:"not null"` // Position in video where thumbnail was taken

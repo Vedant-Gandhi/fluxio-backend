@@ -153,7 +153,7 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 	}
 
 	// Create a map of fields to update based on the params struct
-	updateData := r.buildUpdateDataMap(status, params)
+	updateData := r.buildUpdateVideoDataMap(status, params)
 
 	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
@@ -171,7 +171,7 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoRepository) buildUpdateDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 
