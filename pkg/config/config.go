@@ -38,7 +38,8 @@ type JWTConfig struct {
 }
 
 type VideoConfig struct {
-	S3BucketName           string `env:"BUCKET_NAME" default:""`
+	S3VideoBucketName      string `env:"BUCKET_NAME" default:""`
+	S3ThumbnailBucketName  string `env:"THUMBNAIL_BUCKET_NAME" default:""`
 	S3Region               string `env:"BUCKET_REGION" default:""`
 	S3AccessKey            string `env:"BUCKET_ACCESS_KEY" default:""`
 	S3SecretKey            string `env:"BUCKET_SECRET_KEY" default:""`

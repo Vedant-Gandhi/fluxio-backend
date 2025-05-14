@@ -5,6 +5,7 @@ import (
 	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
+	"fluxio-backend/pkg/utils"
 	"fmt"
 	"net/url"
 	"strings"
@@ -15,12 +16,12 @@ import (
 
 func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
 
-	path := v.generateFileS3Path(slug)
+	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.bucketName))
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.videoBucketName))
 
 	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket:      aws.String(v.bucketName),
+		Bucket:      aws.String(v.videoBucketName),
 		Key:         aws.String(path),
 		ContentType: aws.String("application/octet-stream"),
 	})
@@ -39,12 +40,12 @@ func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.V
 
 func (v *VideoRepository) GetVideoTemporaryDownloadURL(ctx context.Context, slug string) (url *url.URL, err error) {
 
-	path := v.generateFileS3Path(slug)
+	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.bucketName))
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.videoBucketName))
 
 	s3Request, _ := v.s3Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(v.bucketName),
+		Bucket: aws.String(v.videoBucketName),
 		Key:    aws.String(path),
 	})
 
@@ -60,6 +61,14 @@ func (v *VideoRepository) GetVideoTemporaryDownloadURL(ctx context.Context, slug
 	return
 }
 
-func (v *VideoRepository) generateFileS3Path(slug string) string {
-	return fmt.Sprintf("%s/%s", v.bucketName, strings.TrimRight(slug, "/"))
+func (v *VideoRepository) generateVideoFileS3Path(slug string) string {
+	return strings.TrimRight(slug, "/")
+}
+
+func (v *VideoRepository) generateThumbnailFileS3Path(id model.VideoID, timestamp uint64, extension string) string {
+	path := utils.CreateURLSafeThumbnailFileName(id.String(), fmt.Sprint(timestamp))
+
+	// Add file extension to the path.
+	path = fmt.Sprintf("%s.%s", path, extension)
+	return strings.TrimSpace(path)
 }

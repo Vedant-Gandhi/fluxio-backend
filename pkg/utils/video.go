@@ -71,3 +71,48 @@ func CreateURLSafeVideoSlug(title string) (slug string) {
 	slug = "video-" + uniqueSuffix
 	return
 }
+
+func CreateURLSafeThumbnailFileName(videoID string, timestamp string) (fileName string) {
+	// 1. Convert to lowercase and trim spaces
+	fileName = strings.ToLower(fmt.Sprintf("%s-%s", strings.TrimSpace(videoID), strings.TrimSpace(timestamp)))
+
+	// 2. Normalize and transform Unicode characters
+	// First normalize using NFD to separate characters and combining marks
+	t := norm.NFD.String(fileName)
+
+	// 3. Remove non-alphanumeric characters and convert spaces to hyphens
+	var result strings.Builder
+	var lastWasHyphen bool
+
+	for _, r := range t {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsNumber(r):
+			// Keep letters and numbers
+			result.WriteRune(r)
+			lastWasHyphen = false
+		case unicode.IsSpace(r) || unicode.IsPunct(r) || unicode.IsSymbol(r):
+			// Replace spaces, punctuation, and symbols with hyphens
+			if !lastWasHyphen {
+				result.WriteRune('-')
+				lastWasHyphen = true
+			}
+			// Skip all other characters including combining marks (accents)
+		}
+	}
+
+	// 4. Convert back to clean string and remove any leading/trailing hyphens
+	fileName = strings.Trim(result.String(), "-")
+
+	// 5. Limit length
+	maxLength := 50
+	if len(fileName) > maxLength {
+		// Cut at word boundary if possible
+		if idx := strings.LastIndex(fileName[:maxLength], "-"); idx > 0 {
+			fileName = fileName[:idx]
+		} else {
+			fileName = fileName[:maxLength]
+		}
+	}
+
+	return "thumbnail-" + fileName
+}

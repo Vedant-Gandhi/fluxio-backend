@@ -7,8 +7,15 @@ import (
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository"
+	"fluxio-backend/pkg/utils"
+	"fmt"
+	"io"
 	"math"
+	"math/rand"
+	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -102,15 +109,11 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, para
 
 // Performs all the post upload processing for the video.
 func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug string) (err error) {
-
 	videoMeta, err := s.videRepo.GetVideoBySlug(ctx, slug)
-
 	if err != nil {
-
 		if err == fluxerrors.ErrVideoNotFound {
 			return
 		}
-
 		err = fluxerrors.ErrUnknown
 		return
 	}
@@ -121,32 +124,24 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	}
 
 	downloadURL, err := s.videRepo.GetVideoTemporaryDownloadURL(ctx, videoMeta.Slug)
-
 	if err != nil {
-
 		if err == fluxerrors.ErrVideoURLGenerationFailed {
 			return
 		}
-
 		err = fluxerrors.ErrUnknown
 		return
 	}
 
 	// Extract the whole video meta data like size, type, width, height,etc
 	rawProbe, err := ffmpeg_go.Probe(downloadURL.String())
-
 	if err != nil {
-
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
 
 	var probe model.FFProbeOutput
-
 	err = json.Unmarshal([]byte(rawProbe), &probe)
-
 	if err != nil {
-
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -169,24 +164,20 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	}
 
 	updateData := model.UpdateVideoMeta{}
-
 	updateData.AudioCodec = audioStream.CodecName
 
 	sampleRate, err := strconv.Atoi(audioStream.SampleRate)
-
 	if err != nil {
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
 
 	updateData.AudioSampleRate = uint32(sampleRate)
-
 	updateData.Width = uint32(videoStream.Width)
 	updateData.Height = uint32(videoStream.Height)
 	updateData.Format = videoStream.CodecName
 
 	duration, err := strconv.ParseFloat(probe.Format.Duration, 64)
-
 	if err != nil {
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
@@ -195,7 +186,6 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	updateData.Length = uint64(math.Ceil(duration))
 
 	size, err := strconv.ParseFloat(probe.Format.Size, 64)
-
 	if err != nil {
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
@@ -209,133 +199,148 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		if err == fluxerrors.ErrVideoNotFound {
 			return
 		}
-
 		err = fluxerrors.ErrVideoMetaUpdateFailed
 		return
 	}
 
 	// Create thumbnails for the video and store them in the db
+	thumbnailTempDir := path.Join(os.TempDir(), "fluxio-thumbnails-")
+	err = os.MkdirAll(thumbnailTempDir, os.ModePerm)
+	if err != nil {
+		err = fluxerrors.ErrThumbnailCreationFailed
+		return
+	}
+
+	thumbnailWidth := 1280
+	thumbnailHeight := 720
+	thumbnailFormat := "jpg"
+
+	timestamps := s.generateDistinctTimestamps(updateData.Length)
+
+	successThumbnailCount := 0
+	client := &http.Client{}
+
+	// Generate three thumbnails
+	for idx, timestamp := range timestamps {
+		// We need to convert the timestamp to ffmpeg format of HH:MM:SS
+		timestampSeconds := timestamp
+		hours := timestampSeconds / 3600
+		minutes := (timestampSeconds % 3600) / 60
+		seconds := timestampSeconds % 60
+		timeStr := fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+
+		opPath := path.Join(thumbnailTempDir, fmt.Sprintf("%s-%s.%s", videoMeta.Slug, fmt.Sprint(timestamp), thumbnailFormat))
+
+		// We pass the URL so the ffmpeg will smartly use HTTP Range requests to get the exact frame.
+		err = ffmpeg_go.Input(downloadURL.String(), ffmpeg_go.KwArgs{
+			"ss":      timeStr, // The Timestamp to extract the thumbnail from
+			"y":       "",      // Overwrite the output file if exists
+			"timeout": "40",    // Timeout for whole op execution
+		}).Output(opPath, ffmpeg_go.KwArgs{
+			"vframes": 1,                                                                                                                                                                                // How many frames to output
+			"s":       fmt.Sprintf("%dx%d", thumbnailWidth, thumbnailHeight),                                                                                                                            // Pass the thumbnail dimensions here
+			"q:v":     3,                                                                                                                                                                                // Quality of the thumbnail
+			"vf":      fmt.Sprintf("thumbnail,scale=w=%[1]s:h=%[2]s:force_original_aspect_ratio=decrease,pad=%[1]s:%[2]s:(ow-iw)/2:(oh-ih)/2", fmt.Sprint(thumbnailWidth), fmt.Sprint(thumbnailHeight)), // Apply thumbnail filter, scale, maintain aspect ratio
+		}).OverWriteOutput().Run()
+
+		// Perform cleanup of the temporary file
+		defer os.Remove(opPath)
+
+		if err != nil {
+			// Silence the error if ffmpeg fails to generate the thumbnail.
+			err = nil
+			continue
+		}
+
+		fileStat, err := os.Stat(opPath)
+		if err != nil {
+			// If the file does not exist, we can skip this thumbnail.
+			err = nil
+			continue
+		}
+
+		thumbnail := model.Thumbnail{
+			VideoID:   videoMeta.ID,
+			Width:     uint16(thumbnailWidth),
+			Height:    uint16(thumbnailHeight),
+			Size:      uint32(fileStat.Size() / 1024), // Size in KB
+			Format:    thumbnailFormat,
+			TimeStamp: timestamp,
+			IsDefault: idx == 0, // Set the first thumbnail as default
+		}
+
+		url, err := s.videRepo.GenerateThumbnailUploadURL(ctx, thumbnail.VideoID, thumbnail.TimeStamp, thumbnailFormat)
+		if err != nil {
+			err = nil
+			continue
+		}
+
+		thumbFile, err := os.Open(opPath)
+		if err != nil {
+			err = nil
+			continue
+		}
+
+		defer thumbFile.Close()
+
+		uploadReq, err := http.NewRequest(http.MethodPut, url.String(), thumbFile)
+		if err != nil {
+			err = nil
+			continue
+		}
+
+		uploadReq.Header.Set("Content-Type", fmt.Sprintf("image/%s", thumbnailFormat))
+		uploadReq.ContentLength = fileStat.Size()
+
+		resp, err := client.Do(uploadReq)
+		if err != nil {
+			err = nil
+			continue
+		}
+
+		if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent) {
+			body, _ := io.ReadAll(resp.Body)
+			_ = body // Ignored but kept for structure
+			continue
+		}
+
+		resp.Body.Close()
+
+		thumbnail.StoragePath = fmt.Sprintf("%s.%s", utils.CreateURLSafeThumbnailFileName(thumbnail.VideoID.String(), fmt.Sprint(thumbnail.TimeStamp)), thumbnailFormat)
+
+		_, err = s.videRepo.CreateThumbnail(ctx, thumbnail)
+		if err != nil {
+			err = nil // Ignore the error if thumbnail creation fails.
+			continue
+		}
+
+		successThumbnailCount++
+	}
+
 	return
 }
 
-/**
-{
-  "streams": [
-    {
-      "index": 0,
-      "codec_name": "h264",
-      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
-      "profile": "Constrained Baseline",
-      "codec_type": "video",
-      "codec_tag_string": "avc1",
-      "codec_tag": "0x31637661",
-      "width": 480,
-      "height": 270,
-      "coded_width": 480,
-      "coded_height": 270,
-      "closed_captions": 0,
-      "has_b_frames": 0,
-      "sample_aspect_ratio": "1:1",
-      "display_aspect_ratio": "16:9",
-      "pix_fmt": "yuv420p",
-      "level": 30,
-      "chroma_location": "left",
-      "refs": 1,
-      "is_avc": "true",
-      "nal_length_size": "4",
-      "r_frame_rate": "30/1",
-      "avg_frame_rate": "30/1",
-      "time_base": "1/30",
-      "start_pts": 0,
-      "start_time": "0.000000",
-      "duration_ts": 901,
-      "duration": "30.033333",
-      "bit_rate": "301201",
-      "bits_per_raw_sample": "8",
-      "nb_frames": "901",
-      "disposition": {
-        "default": 1,
-        "dub": 0,
-        "original": 0,
-        "comment": 0,
-        "lyrics": 0,
-        "karaoke": 0,
-        "forced": 0,
-        "hearing_impaired": 0,
-        "visual_impaired": 0,
-        "clean_effects": 0,
-        "attached_pic": 0,
-        "timed_thumbnails": 0
-      },
-      "tags": {
-        "creation_time": "2015-08-07T09:13:02.000000Z",
-        "language": "und",
-        "handler_name": "L-SMASH Video Handler",
-        "vendor_id": "[0][0][0][0]",
-        "encoder": "AVC Coding"
-      }
-    },
-    {
-      "index": 1,
-      "codec_name": "aac",
-      "codec_long_name": "AAC (Advanced Audio Coding)",
-      "profile": "LC",
-      "codec_type": "audio",
-      "codec_tag_string": "mp4a",
-      "codec_tag": "0x6134706d",
-      "sample_fmt": "fltp",
-      "sample_rate": "48000",
-      "channels": 2,
-      "channel_layout": "stereo",
-      "bits_per_sample": 0,
-      "r_frame_rate": "0/0",
-      "avg_frame_rate": "0/0",
-      "time_base": "1/48000",
-      "start_pts": 0,
-      "start_time": "0.000000",
-      "duration_ts": 1465280,
-      "duration": "30.526667",
-      "bit_rate": "112000",
-      "nb_frames": "1431",
-      "disposition": {
-        "default": 1,
-        "dub": 0,
-        "original": 0,
-        "comment": 0,
-        "lyrics": 0,
-        "karaoke": 0,
-        "forced": 0,
-        "hearing_impaired": 0,
-        "visual_impaired": 0,
-        "clean_effects": 0,
-        "attached_pic": 0,
-        "timed_thumbnails": 0
-      },
-      "tags": {
-        "creation_time": "2015-08-07T09:13:02.000000Z",
-        "language": "und",
-        "handler_name": "L-SMASH Audio Handler",
-        "vendor_id": "[0][0][0][0]"
-      }
-    }
-  ],
-  "format": {
-    "filename": "http://127.0.0.1:9000/videos/new-with-slu1g-adc53916?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=LAiAfReWLSdL4OiKoKW6%2F20250509%2Fsa-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250509T124227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=e5b9c3166090a83ec1773ce5fe1e0ff0c73f15f2ad2fdbb912a284950b884897",
-    "nb_streams": 2,
-    "nb_programs": 0,
-    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
-    "format_long_name": "QuickTime / MOV",
-    "start_time": "0.000000",
-    "duration": "30.526667",
-    "size": "1570024",
-    "bit_rate": "411449",
-    "probe_score": 100,
-    "tags": {
-      "major_brand": "mp42",
-      "minor_version": "0",
-      "compatible_brands": "mp42mp41isomavc1",
-      "creation_time": "2015-08-07T09:13:02.000000Z"
-    }
-  }
+func (v *VideoService) generateDistinctTimestamps(videoDuration uint64) []uint64 {
+
+	// Divide video into 3 segments and pick a random time from each segment
+	segmentDuration := videoDuration / 4 // Use 4 segments to avoid the very beginning and end
+
+	timestamps := make([]uint64, 3)
+
+	// First thumbnail from first quarter (excluding first 5% of video)
+	minTime1 := uint64(float64(videoDuration) * 0.05)
+	maxTime1 := segmentDuration
+	timestamps[0] = minTime1 + uint64(rand.Int63n(int64(maxTime1-minTime1)))
+
+	// Second thumbnail from middle section
+	minTime2 := segmentDuration * 1
+	maxTime2 := segmentDuration * 2
+	timestamps[1] = minTime2 + uint64(rand.Int63n(int64(maxTime2-minTime2)))
+
+	// Third thumbnail from later section (avoiding last 5% of video)
+	minTime3 := segmentDuration * 2
+	maxTime3 := uint64(float64(videoDuration) * 0.95)
+	timestamps[2] = minTime3 + uint64(rand.Int63n(int64(maxTime3-minTime3)))
+
+	return timestamps
 }
-*/
