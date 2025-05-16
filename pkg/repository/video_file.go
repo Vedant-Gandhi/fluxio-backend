@@ -14,14 +14,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
+func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
 
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.videoBucketName))
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.rawVidBketName))
 
 	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket:      aws.String(v.videoBucketName),
+		Bucket:      aws.String(v.rawVidBketName),
 		Key:         aws.String(path),
 		ContentType: aws.String("application/octet-stream"),
 	})
@@ -38,14 +38,14 @@ func (v *VideoRepository) GenerateVideoUploadURL(ctx context.Context, id model.V
 	return
 }
 
-func (v *VideoRepository) GetVideoTemporaryDownloadURL(ctx context.Context, slug string) (url *url.URL, err error) {
+func (v *VideoRepository) GetUnProcessedVideoDownloadURL(ctx context.Context, slug string) (url *url.URL, err error) {
 
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.videoBucketName))
+	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.rawVidBketName))
 
 	s3Request, _ := v.s3Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(v.videoBucketName),
+		Bucket: aws.String(v.rawVidBketName),
 		Key:    aws.String(path),
 	})
 

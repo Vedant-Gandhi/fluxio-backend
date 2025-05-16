@@ -22,17 +22,19 @@ type VideoRepository struct {
 	db *pgsql.PgSQL
 
 	s3Client            *s3.S3
-	videoBucketName     string
+	rawVidBketName      string
+	pubVidBketName      string
 	thumbnailBucketName string
 }
 
 type VideoRepositoryConfig struct {
-	S3VideoBucketName     string
-	S3ThumbnailBucketName string
-	S3Region              string
-	S3AccessKey           string
-	S3SecretKey           string
-	S3Endpoint            string
+	S3RawVideoBucketName    string
+	S3PublicVideoBucketName string
+	S3ThumbnailBucketName   string
+	S3Region                string
+	S3AccessKey             string
+	S3SecretKey             string
+	S3Endpoint              string
 }
 
 func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoRepository {
@@ -55,7 +57,7 @@ func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoReposi
 
 	s3Client := s3.New(awsSession)
 
-	return &VideoRepository{db: db, s3Client: s3Client, videoBucketName: cfg.S3VideoBucketName, thumbnailBucketName: cfg.S3ThumbnailBucketName}
+	return &VideoRepository{db: db, s3Client: s3Client, rawVidBketName: cfg.S3RawVideoBucketName, pubVidBketName: cfg.S3PublicVideoBucketName, thumbnailBucketName: cfg.S3ThumbnailBucketName}
 }
 
 func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {

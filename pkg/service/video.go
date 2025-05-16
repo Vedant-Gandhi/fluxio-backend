@@ -46,7 +46,7 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	// Generate the upload URL for the video.
-	ptrURL, err := s.videRepo.GenerateVideoUploadURL(ctx, video.ID, video.Slug)
+	ptrURL, err := s.videRepo.GenerateUnProcessedVideoUploadURL(ctx, video.ID, video.Slug)
 
 	if err != nil {
 		err = fluxerrors.ErrVideoURLGenerationFailed
@@ -123,7 +123,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		return
 	}
 
-	downloadURL, err := s.videRepo.GetVideoTemporaryDownloadURL(ctx, videoMeta.Slug)
+	downloadURL, err := s.videRepo.GetUnProcessedVideoDownloadURL(ctx, videoMeta.Slug)
 	if err != nil {
 		if err == fluxerrors.ErrVideoURLGenerationFailed {
 			return
