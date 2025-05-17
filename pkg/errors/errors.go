@@ -64,5 +64,5 @@ var (
 var (
 	ErrInvalidThumbnailDimensions   = errors.New("thumbnail dimensions are not valid")
 	ErrThumbnailCreationFailed      = errors.New("failed to create thumbnail")
-	ErrThumbnailURLGenerationFailed = errors.New("failed to generate video upload URL")
+	ErrThumbnailURLGenerationFailed = errors.New("failed to generate thumbnail upload URL")
 )
