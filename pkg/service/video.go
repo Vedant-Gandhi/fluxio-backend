@@ -9,7 +9,6 @@ import (
 	"fluxio-backend/pkg/repository"
 	"fluxio-backend/pkg/utils"
 	"fmt"
-	"io"
 	"math"
 	"math/rand"
 	"net/http"
@@ -210,6 +209,8 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		return
 	}
 
+	defer os.RemoveAll(thumbnailTempDir)
+
 	thumbnailWidth := 1280
 	thumbnailHeight := 720
 	thumbnailFormat := "jpg"
@@ -298,8 +299,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		}
 
 		if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent) {
-			body, _ := io.ReadAll(resp.Body)
-			_ = body // Ignored but kept for structure
+			resp.Body.Close()
 			continue
 		}
 
