@@ -14,14 +14,13 @@ type VideoStatus string
 type VideoVisibility string
 
 const (
-	VideoStatusPending       VideoStatus = "pending"
-	VideoStatusProcessing    VideoStatus = "processing"
-	VideoStatusMetaExtracted VideoStatus = "meta_extracted"
-	VideoGeneratingThumbnail VideoStatus = "generating_thumbnail"
-	VideoStatusCompleted     VideoStatus = "completed"
-	VideoStatusFailed        VideoStatus = "failed"
-	VideoStatusDeleted       VideoStatus = "deleted"
-	VideoStatusAbandoned     VideoStatus = "abandoned"
+	VideoStatusUploadPending   VideoStatus = "upload_pending"
+	VideoStatusProcessing      VideoStatus = "processing"
+	VideoStatusProcessingDelay VideoStatus = "processing_delay"
+	VideoStatusCompleted       VideoStatus = "completed"
+	VideoStatusFailed          VideoStatus = "failed"
+	VideoStatusDeleted         VideoStatus = "deleted"
+	VideoStatusAbandoned       VideoStatus = "abandoned"
 
 	VideoVisibilityPublic  VideoVisibility = "public"
 	VideoVisibilityPrivate VideoVisibility = "private"
@@ -30,10 +29,9 @@ const (
 // This function checks if the video status is of a valid value.
 func (s VideoStatus) IsAcceptable() bool {
 	switch s {
-	case VideoStatusPending,
+	case VideoStatusUploadPending,
+		VideoStatusProcessingDelay,
 		VideoStatusProcessing,
-		VideoStatusMetaExtracted,
-		VideoGeneratingThumbnail,
 		VideoStatusCompleted,
 		VideoStatusFailed,
 		VideoStatusDeleted,
@@ -65,6 +63,32 @@ func (s VideoVisibility) IsAcceptable() bool {
 	default:
 		return false
 	}
+}
+
+const (
+	VidInternalStatusUploadPending       VideoInternalStatus = "upload_pending"
+	VidInternalStatusMetaExtracted       VideoInternalStatus = "meta_extracted"
+	VidInternalStatusThumbnailGenerated  VideoInternalStatus = "thumbnail_generated"
+	VidInternalStatusProcessingCompleted VideoInternalStatus = "completed"
+
+	VidInternalStatusThumbnailFailed VideoInternalStatus = "thumbnail_failed"
+	VidInternalStatusMetaFailed      VideoInternalStatus = "meta_failed"
+)
+
+type VideoInternalStatus string
+
+// This function checks if the video status is of a valid value.
+func (s VideoInternalStatus) IsAcceptable() bool {
+	switch s {
+	case VidInternalStatusUploadPending:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s VideoInternalStatus) String() string {
+	return string(s)
 }
 
 type Video struct {
@@ -106,6 +130,7 @@ type UpdateVideoMeta struct {
 	AudioCodec      string          `json:"audio_codec"`
 	RetryCount      uint8           `json:"retry_count"`
 	Status          VideoStatus     `json:"status"`
+	InternalStatus  VideoStatus     `json:"-"`
 	IsFeatured      bool            `json:"is_featured,omitempty"`
 	Visibility      VideoVisibility `json:"visibility"`
 	Slug            string          `json:"slug"`

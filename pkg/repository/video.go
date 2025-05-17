@@ -184,6 +184,11 @@ func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, para
 		updateData["storage_path"] = params.StoragePath
 	}
 
+	// Add Internal Status from params
+	if !strings.EqualFold(params.InternalStatus, "") {
+		updateData["internal_status"] = params.InternalStatus
+	}
+
 	// Add other fields from params, only if they're not zero values
 	// Title
 	if !strings.EqualFold(params.Title, "") {
