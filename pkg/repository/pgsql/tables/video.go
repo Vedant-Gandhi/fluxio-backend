@@ -21,7 +21,7 @@ type Video struct {
 	AudioCodec      string         `json:"audio_codec"`       // Will be unknown during upload
 	RetryCount      uint8          `gorm:"default:0" json:"retry_count"`
 	Status          string         `gorm:"not null" json:"status"`
-	InternalStatus  string         `gorm:"not null" json:"internal_status"` // Added to track internal processing status
+	InternalStatus  string         `gorm:"not null default:'upload_pending'" json:"internal_status"` // Added to track internal processing status
 	CreatedAt       time.Time      `gorm:"autoCreateTime:nano" json:"created_at"`
 	UpdatedAt       time.Time      `gorm:"autoUpdateTime:nano" json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"` // Should be nullable
