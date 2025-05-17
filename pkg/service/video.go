@@ -322,6 +322,14 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 
 func (v *VideoService) generateDistinctTimestamps(videoDuration uint64) []uint64 {
 
+	if videoDuration < 4 {
+		if videoDuration < 2 {
+			return []uint64{videoDuration}
+		}
+		step := videoDuration / 3
+		return []uint64{step, 2 * step, videoDuration}
+	}
+
 	// Divide video into 3 segments and pick a random time from each segment
 	segmentDuration := videoDuration / 4 // Use 4 segments to avoid the very beginning and end
 
