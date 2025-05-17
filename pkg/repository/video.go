@@ -111,8 +111,8 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 		Visibility: model.VideoVisibility(vidTable.Visibility),
 		Slug:       vidTable.Slug,
 		RetryCount: vidTable.RetryCount,
-		CreatedAt:  vidTable.CreatedAt,
-		UpdatedAt:  vidTable.UpdatedAt,
+		CreatedAt:  &vidTable.CreatedAt,
+		UpdatedAt:  &vidTable.UpdatedAt,
 		IsFeatured: vidTable.IsFeatured,
 	}
 
@@ -290,8 +290,8 @@ func (r *VideoRepository) GetVideoByID(ctx context.Context, id model.VideoID) (v
 		Visibility: model.VideoVisibility(data.Visibility),
 		Slug:       data.Slug,
 		RetryCount: data.RetryCount,
-		CreatedAt:  data.CreatedAt,
-		UpdatedAt:  data.UpdatedAt,
+		CreatedAt:  &data.CreatedAt,
+		UpdatedAt:  &data.UpdatedAt,
 		IsFeatured: data.IsFeatured,
 	}
 
@@ -321,8 +321,8 @@ func (r *VideoRepository) GetVideoBySlug(ctx context.Context, slug string) (vide
 		Visibility: model.VideoVisibility(data.Visibility),
 		Slug:       data.Slug,
 		RetryCount: data.RetryCount,
-		CreatedAt:  data.CreatedAt,
-		UpdatedAt:  data.UpdatedAt,
+		CreatedAt:  &data.CreatedAt,
+		UpdatedAt:  &data.UpdatedAt,
 		IsFeatured: data.IsFeatured,
 	}
 
@@ -377,8 +377,8 @@ func (r *VideoRepository) GetProcessingDetailsBySlug(ctx context.Context, slug s
 		IsFeatured:  tableVid.IsFeatured,
 		Status:      model.VideoStatus(tableVid.Status),
 		StoragePath: tableVid.StoragePath,
-		CreatedAt:   tableVid.CreatedAt,
-		UpdatedAt:   tableVid.UpdatedAt,
+		CreatedAt:   &tableVid.CreatedAt,
+		UpdatedAt:   &tableVid.UpdatedAt,
 		RetryCount:  tableVid.RetryCount,
 	}
 
