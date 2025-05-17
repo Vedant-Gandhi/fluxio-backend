@@ -204,8 +204,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	}
 
 	// Create thumbnails for the video and store them in the db
-	thumbnailTempDir := path.Join(os.TempDir(), "fluxio-thumbnails-")
-	err = os.MkdirAll(thumbnailTempDir, os.ModePerm)
+	thumbnailTempDir, err := os.MkdirTemp(os.TempDir(), "fluxio-thumbnails-*")
 	if err != nil {
 		err = fluxerrors.ErrThumbnailCreationFailed
 		return
