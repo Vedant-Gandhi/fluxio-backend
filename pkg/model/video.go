@@ -91,7 +91,7 @@ type Video struct {
 	Language        string          `json:"language"`
 	ResourceURL     url.URL         `json:"resource_url"`
 	StoragePath     string          `json:"-"`
-	Thumnbails      []Thumbnail     `json:"thumbnails,omitempty"`
+	Thumbnails      []Thumbnail     `json:"thumbnails,omitempty"`
 }
 
 type UpdateVideoMeta struct {
