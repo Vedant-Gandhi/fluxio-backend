@@ -39,7 +39,7 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	// Disallow upload if the video is not in a pending state or if the retry count is greater than 3.
-	if video.RetryCount > constants.MaxVideoURLRegenerateRetryCount || video.Status != model.VideoStatusPending {
+	if video.RetryCount > constants.MaxVideoURLRegenerateRetryCount || video.Status != model.VideoStatusUploadPending {
 		err = fluxerrors.ErrVideoUploadNotAllowed
 		return
 	}
@@ -85,7 +85,7 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, para
 	}
 
 	// If video status is not pending or retry limit is over end it.
-	if existData.Status != model.VideoStatusPending || existData.RetryCount > constants.MaxVideoURLRegenerateRetryCount {
+	if existData.Status != model.VideoStatusUploadPending || existData.RetryCount > constants.MaxVideoURLRegenerateRetryCount {
 		err = fluxerrors.ErrInvalidVideoStatus
 		return
 	}
@@ -193,7 +193,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	calcPrec := math.Pow(10, float64(constants.VidSizeDecimalPrecision)) // Stores the power precision to round the size.
 	updateData.Size = float32(math.Round(size*calcPrec) / calcPrec)      // Round the size to decimal places.
 
-	err = s.videRepo.UpdateMeta(ctx, videoMeta.ID, model.VideoStatusMetaExtracted, updateData)
+	err = s.videRepo.UpdateInternalStatus(ctx, videoMeta.ID, model.VidInternalStatusMetaExtracted)
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
 			return

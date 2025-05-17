@@ -76,7 +76,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	vidTable := &tables.Video{
 		Title:      videoMeta.Title,
 		UserID:     videoMeta.UserID,
-		Status:     model.VideoStatusPending.String(),
+		Status:     model.VideoStatusUploadPending.String(),
 		Visibility: videoMeta.Visibility.String(),
 		Slug:       slug,
 	}
@@ -156,8 +156,10 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 		return fluxerrors.ErrInvalidVideoStatus
 	}
 
+	params.Status = status
+
 	// Create a map of fields to update based on the params struct
-	updateData := r.buildUpdateVideoDataMap(status, params)
+	updateData := r.buildUpdateVideoDataMap(params)
 
 	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
@@ -173,9 +175,40 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 	return nil
 }
 
+// UpdateMeta updates video metadata with the provided parameters
+func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.VideoID, status model.VideoInternalStatus) (err error) {
+	// Parse the VideoID to UUID
+	uuid, err := uuid.Parse(id.String())
+	if err != nil {
+		return fluxerrors.ErrInvalidVideoID
+	}
+
+	// Validate the video status
+	if !status.IsAcceptable() {
+		return fluxerrors.ErrInvalidVideoStatus
+	}
+
+	statusUpdate := map[string]interface{}{
+		"internal_status": status.String(),
+	}
+
+	// Execute the update
+	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(statusUpdate)
+
+	if tx.Error != nil {
+		return fluxerrors.ErrVideoMetaUpdateFailed
+	}
+
+	if tx.RowsAffected == 0 {
+		return fluxerrors.ErrVideoNotFound
+	}
+
+	return nil
+}
+
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateVideoDataMap(params model.UpdateVideoMeta) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 
@@ -185,7 +218,7 @@ func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, para
 	}
 
 	// Add Internal Status from params
-	if !strings.EqualFold(params.InternalStatus, "") {
+	if !strings.EqualFold(params.InternalStatus.String(), "") {
 		updateData["internal_status"] = params.InternalStatus
 	}
 
@@ -221,8 +254,8 @@ func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, para
 	}
 
 	// Status
-	if status.IsAcceptable() {
-		updateData["status"] = status.String()
+	if params.Status.IsAcceptable() {
+		updateData["status"] = params.Status.String()
 	}
 
 	// Length
