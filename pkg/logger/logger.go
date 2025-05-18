@@ -8,7 +8,7 @@ import (
 
 type DefaultLogger struct{}
 
-func NewCmdLogger() *DefaultLogger {
+func NewDefaultLogger() *DefaultLogger {
 	return &DefaultLogger{}
 }
 

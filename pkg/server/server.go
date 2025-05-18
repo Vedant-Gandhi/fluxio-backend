@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/config"
+	"fluxio-backend/pkg/logger"
 	"fluxio-backend/pkg/repository"
 	"fluxio-backend/pkg/repository/pgsql"
 	"fluxio-backend/pkg/service"
@@ -28,8 +30,10 @@ func NewServer() {
 		os.Exit(1)
 	}
 
+	logr := schema.Logger(logger.NewDefaultLogger())
+
 	// Repositories
-	userRepo := repository.NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db, &logr)
 
 	videoRepo := repository.NewVideoRepository(db, repository.VideoRepositoryConfig{
 		S3RawVideoBucketName:    cfg.VideoCfg.S3RawVideoBucketName,
@@ -39,7 +43,8 @@ func NewServer() {
 		S3AccessKey:             cfg.VideoCfg.S3AccessKey,
 		S3SecretKey:             cfg.VideoCfg.S3SecretKey,
 		S3Endpoint:              cfg.VideoCfg.S3Endpoint,
-	})
+	},
+		&logr)
 
 	// Services
 	if cfg.JWT.Secret == "" {
@@ -47,20 +52,20 @@ func NewServer() {
 		os.Exit(1)
 	}
 
-	jwtService := service.NewJWTService(cfg.JWT.Secret)
-	userService := service.NewUserService(userRepo, jwtService)
-	videoService := service.NewVideoService(videoRepo)
+	jwtService := service.NewJWTService(cfg.JWT.Secret, &logr)
+	userService := service.NewUserService(userRepo, jwtService, &logr)
+	videoService := service.NewVideoService(videoRepo, &logr)
 
 	// Middleware
-	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService)
+	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService, &logr)
 	middleware := middleware.NewMiddleware(authMiddleware)
 
 	// Controllers
-	authController := controller.NewAuthController(userService)
-	videoController := controller.NewVideoController(videoService)
+	authController := controller.NewAuthController(userService, &logr)
+	videoController := controller.NewVideoController(videoService, &logr)
 
 	// Pass the raw bucket name since that bucket's callback needs to be handled here
-	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3RawVideoBucketName, videoService)
+	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3RawVideoBucketName, videoService, &logr)
 
 	// Route registrars
 	authRouter := routes.NewAuthRouter(authController, middleware)

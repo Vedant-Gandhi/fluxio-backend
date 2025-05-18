@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
@@ -14,12 +15,14 @@ import (
 type AuthMiddleware struct {
 	authService  *service.UserService
 	tokenService *service.JWTService
+	l            *schema.Logger
 }
 
-func NewAuthMiddleware(authService *service.UserService, tokenService *service.JWTService) *AuthMiddleware {
+func NewAuthMiddleware(authService *service.UserService, tokenService *service.JWTService, logger *schema.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		authService:  authService,
 		tokenService: tokenService,
+		l:            logger,
 	}
 }
 
