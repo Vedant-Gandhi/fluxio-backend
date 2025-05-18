@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
@@ -13,10 +14,11 @@ import (
 
 type UserRepository struct {
 	db *pgsql.PgSQL
+	l  *schema.Logger
 }
 
-func NewUserRepository(db *pgsql.PgSQL) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *pgsql.PgSQL, logger *schema.Logger) *UserRepository {
+	return &UserRepository{db: db, l: logger}
 }
 
 func (u *UserRepository) CreateUser(user model.User) (id model.UserID, err error) {

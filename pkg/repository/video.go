@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
@@ -20,6 +21,7 @@ import (
 
 type VideoRepository struct {
 	db *pgsql.PgSQL
+	l  *schema.Logger
 
 	s3Client            *s3.S3
 	rawVidBketName      string
@@ -37,7 +39,7 @@ type VideoRepositoryConfig struct {
 	S3Endpoint              string
 }
 
-func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoRepository {
+func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig, logger *schema.Logger) *VideoRepository {
 
 	url, _ := url.Parse(cfg.S3Endpoint)
 
@@ -57,7 +59,14 @@ func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoReposi
 
 	s3Client := s3.New(awsSession)
 
-	return &VideoRepository{db: db, s3Client: s3Client, rawVidBketName: cfg.S3RawVideoBucketName, pubVidBketName: cfg.S3PublicVideoBucketName, thumbnailBucketName: cfg.S3ThumbnailBucketName}
+	return &VideoRepository{
+		db:                  db,
+		s3Client:            s3Client,
+		rawVidBketName:      cfg.S3RawVideoBucketName,
+		pubVidBketName:      cfg.S3PublicVideoBucketName,
+		thumbnailBucketName: cfg.S3ThumbnailBucketName,
+		l:                   logger,
+	}
 }
 
 func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
