@@ -21,7 +21,7 @@ import (
 
 type VideoRepository struct {
 	db *pgsql.PgSQL
-	l  *schema.Logger
+	l  schema.Logger
 
 	s3Client            *s3.S3
 	rawVidBketName      string
@@ -39,7 +39,7 @@ type VideoRepositoryConfig struct {
 	S3Endpoint              string
 }
 
-func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig, logger *schema.Logger) *VideoRepository {
+func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig, logger schema.Logger) *VideoRepository {
 
 	url, _ := url.Parse(cfg.S3Endpoint)
 

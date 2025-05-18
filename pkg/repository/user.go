@@ -14,10 +14,10 @@ import (
 
 type UserRepository struct {
 	db *pgsql.PgSQL
-	l  *schema.Logger
+	l  schema.Logger
 }
 
-func NewUserRepository(db *pgsql.PgSQL, logger *schema.Logger) *UserRepository {
+func NewUserRepository(db *pgsql.PgSQL, logger schema.Logger) *UserRepository {
 	return &UserRepository{db: db, l: logger}
 }
 

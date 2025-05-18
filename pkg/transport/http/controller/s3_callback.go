@@ -17,10 +17,10 @@ type S3CallbackController struct {
 	bucketName string
 	vidSvc     *service.VideoService
 
-	l *schema.Logger
+	l schema.Logger
 }
 
-func NewS3CallbackController(bucketName string, videoSvc *service.VideoService, logger *schema.Logger) *S3CallbackController {
+func NewS3CallbackController(bucketName string, videoSvc *service.VideoService, logger schema.Logger) *S3CallbackController {
 	return &S3CallbackController{
 		bucketName: bucketName,
 		vidSvc:     videoSvc,

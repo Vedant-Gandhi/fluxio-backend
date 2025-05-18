@@ -14,10 +14,10 @@ import (
 
 type AuthController struct {
 	userService *service.UserService
-	l           *schema.Logger
+	l           schema.Logger
 }
 
-func NewAuthController(userService *service.UserService, logger *schema.Logger) *AuthController {
+func NewAuthController(userService *service.UserService, logger schema.Logger) *AuthController {
 	return &AuthController{
 		userService: userService,
 		l:           logger,

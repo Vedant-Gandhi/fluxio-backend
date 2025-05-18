@@ -16,10 +16,10 @@ const TOKEN_EXPIRY = uint(8 * 60) // 8 hours
 type UserService struct {
 	repo     *repository.UserRepository
 	jService *JWTService
-	l        *schema.Logger
+	l        schema.Logger
 }
 
-func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService, logger *schema.Logger) *UserService {
+func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService, logger schema.Logger) *UserService {
 	return &UserService{
 		repo:     repo,
 		jService: jwtsvc,

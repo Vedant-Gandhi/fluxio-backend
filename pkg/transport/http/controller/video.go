@@ -13,10 +13,10 @@ import (
 type VideoController struct {
 	videoService *service.VideoService
 
-	l *schema.Logger
+	l schema.Logger
 }
 
-func NewVideoController(videoService *service.VideoService, logger *schema.Logger) *VideoController {
+func NewVideoController(videoService *service.VideoService, logger schema.Logger) *VideoController {
 	return &VideoController{
 		videoService: videoService,
 		l:            logger,

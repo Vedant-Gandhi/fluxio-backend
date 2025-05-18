@@ -24,10 +24,10 @@ import (
 
 type VideoService struct {
 	videRepo *repository.VideoRepository
-	l        *schema.Logger
+	l        schema.Logger
 }
 
-func NewVideoService(videRepo *repository.VideoRepository, logger *schema.Logger) *VideoService {
+func NewVideoService(videRepo *repository.VideoRepository, logger schema.Logger) *VideoService {
 	return &VideoService{
 		videRepo: videRepo,
 		l:        logger,

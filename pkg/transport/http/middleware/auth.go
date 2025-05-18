@@ -15,10 +15,10 @@ import (
 type AuthMiddleware struct {
 	authService  *service.UserService
 	tokenService *service.JWTService
-	l            *schema.Logger
+	l            schema.Logger
 }
 
-func NewAuthMiddleware(authService *service.UserService, tokenService *service.JWTService, logger *schema.Logger) *AuthMiddleware {
+func NewAuthMiddleware(authService *service.UserService, tokenService *service.JWTService, logger schema.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		authService:  authService,
 		tokenService: tokenService,

@@ -12,10 +12,10 @@ import (
 
 type JWTService struct {
 	secret string
-	l      *schema.Logger
+	l      schema.Logger
 }
 
-func NewJWTService(secret string, logger *schema.Logger) *JWTService {
+func NewJWTService(secret string, logger schema.Logger) *JWTService {
 	return &JWTService{secret: secret, l: logger}
 }
 
