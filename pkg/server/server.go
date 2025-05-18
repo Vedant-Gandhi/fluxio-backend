@@ -32,11 +32,13 @@ func NewServer() {
 	userRepo := repository.NewUserRepository(db)
 
 	videoRepo := repository.NewVideoRepository(db, repository.VideoRepositoryConfig{
-		S3BucketName: cfg.VideoCfg.S3BucketName,
-		S3Region:     cfg.VideoCfg.S3Region,
-		S3AccessKey:  cfg.VideoCfg.S3AccessKey,
-		S3SecretKey:  cfg.VideoCfg.S3SecretKey,
-		S3Endpoint:   cfg.VideoCfg.S3Endpoint,
+		S3RawVideoBucketName:    cfg.VideoCfg.S3RawVideoBucketName,
+		S3PublicVideoBucketName: cfg.VideoCfg.S3PublicVideoBucketName,
+		S3ThumbnailBucketName:   cfg.VideoCfg.S3ThumbnailBucketName,
+		S3Region:                cfg.VideoCfg.S3Region,
+		S3AccessKey:             cfg.VideoCfg.S3AccessKey,
+		S3SecretKey:             cfg.VideoCfg.S3SecretKey,
+		S3Endpoint:              cfg.VideoCfg.S3Endpoint,
 	})
 
 	// Services
@@ -56,7 +58,9 @@ func NewServer() {
 	// Controllers
 	authController := controller.NewAuthController(userService)
 	videoController := controller.NewVideoController(videoService)
-	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3BucketName, videoService)
+
+	// Pass the raw bucket name since that bucket's callback needs to be handled here
+	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3RawVideoBucketName, videoService)
 
 	// Route registrars
 	authRouter := routes.NewAuthRouter(authController, middleware)

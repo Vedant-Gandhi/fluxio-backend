@@ -21,16 +21,20 @@ import (
 type VideoRepository struct {
 	db *pgsql.PgSQL
 
-	s3Client   *s3.S3
-	bucketName string
+	s3Client            *s3.S3
+	rawVidBketName      string
+	pubVidBketName      string
+	thumbnailBucketName string
 }
 
 type VideoRepositoryConfig struct {
-	S3BucketName string
-	S3Region     string
-	S3AccessKey  string
-	S3SecretKey  string
-	S3Endpoint   string
+	S3RawVideoBucketName    string
+	S3PublicVideoBucketName string
+	S3ThumbnailBucketName   string
+	S3Region                string
+	S3AccessKey             string
+	S3SecretKey             string
+	S3Endpoint              string
 }
 
 func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoRepository {
@@ -53,7 +57,7 @@ func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoReposi
 
 	s3Client := s3.New(awsSession)
 
-	return &VideoRepository{db: db, s3Client: s3Client, bucketName: cfg.S3BucketName}
+	return &VideoRepository{db: db, s3Client: s3Client, rawVidBketName: cfg.S3RawVideoBucketName, pubVidBketName: cfg.S3PublicVideoBucketName, thumbnailBucketName: cfg.S3ThumbnailBucketName}
 }
 
 func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
@@ -107,8 +111,8 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 		Visibility: model.VideoVisibility(vidTable.Visibility),
 		Slug:       vidTable.Slug,
 		RetryCount: vidTable.RetryCount,
-		CreatedAt:  vidTable.CreatedAt,
-		UpdatedAt:  vidTable.UpdatedAt,
+		CreatedAt:  &vidTable.CreatedAt,
+		UpdatedAt:  &vidTable.UpdatedAt,
 		IsFeatured: vidTable.IsFeatured,
 	}
 
@@ -153,7 +157,7 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 	}
 
 	// Create a map of fields to update based on the params struct
-	updateData := r.buildUpdateDataMap(status, params)
+	updateData := r.buildUpdateVideoDataMap(status, params)
 
 	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
@@ -171,7 +175,7 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoRepository) buildUpdateDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 
@@ -286,8 +290,8 @@ func (r *VideoRepository) GetVideoByID(ctx context.Context, id model.VideoID) (v
 		Visibility: model.VideoVisibility(data.Visibility),
 		Slug:       data.Slug,
 		RetryCount: data.RetryCount,
-		CreatedAt:  data.CreatedAt,
-		UpdatedAt:  data.UpdatedAt,
+		CreatedAt:  &data.CreatedAt,
+		UpdatedAt:  &data.UpdatedAt,
 		IsFeatured: data.IsFeatured,
 	}
 
@@ -317,8 +321,8 @@ func (r *VideoRepository) GetVideoBySlug(ctx context.Context, slug string) (vide
 		Visibility: model.VideoVisibility(data.Visibility),
 		Slug:       data.Slug,
 		RetryCount: data.RetryCount,
-		CreatedAt:  data.CreatedAt,
-		UpdatedAt:  data.UpdatedAt,
+		CreatedAt:  &data.CreatedAt,
+		UpdatedAt:  &data.UpdatedAt,
 		IsFeatured: data.IsFeatured,
 	}
 
@@ -373,8 +377,8 @@ func (r *VideoRepository) GetProcessingDetailsBySlug(ctx context.Context, slug s
 		IsFeatured:  tableVid.IsFeatured,
 		Status:      model.VideoStatus(tableVid.Status),
 		StoragePath: tableVid.StoragePath,
-		CreatedAt:   tableVid.CreatedAt,
-		UpdatedAt:   tableVid.UpdatedAt,
+		CreatedAt:   &tableVid.CreatedAt,
+		UpdatedAt:   &tableVid.UpdatedAt,
 		RetryCount:  tableVid.RetryCount,
 	}
 

@@ -17,3 +17,7 @@ type User struct {
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	IsBlackListed bool           `gorm:"default:false" json:"is_blacklisted,omitempty"`
 }
+
+func (User) TableName() string {
+	return "users"
+}

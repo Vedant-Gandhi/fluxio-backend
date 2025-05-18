@@ -25,4 +25,5 @@ const (
 
 const (
 	VidSizeDecimalPrecision = 3
+	TotalThumbnailCount     = 3
 )

@@ -59,3 +59,10 @@ var (
 
 	ErrVideoStreamCountNotSupported = errors.New("video stream count not supported")
 )
+
+// Thumbnail errors
+var (
+	ErrInvalidThumbnailDimensions   = errors.New("thumbnail dimensions are not valid")
+	ErrThumbnailCreationFailed      = errors.New("failed to create thumbnail")
+	ErrThumbnailURLGenerationFailed = errors.New("failed to generate thumbnail upload URL")
+)

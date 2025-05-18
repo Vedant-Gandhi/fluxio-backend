@@ -81,8 +81,8 @@ type Video struct {
 	AudioCodec      string          `json:"audio_codec"`
 	RetryCount      uint8           `json:"retry_count"`
 	Status          VideoStatus     `json:"status"`
-	CreatedAt       time.Time       `json:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at"`
+	CreatedAt       *time.Time      `json:"created_at"`
+	UpdatedAt       *time.Time      `json:"updated_at"`
 	DeletedAt       *time.Time      `json:"deleted_at,omitempty"`
 	IsFeatured      bool            `json:"is_featured,omitempty"`
 	Visibility      VideoVisibility `json:"visibility"`
@@ -91,6 +91,7 @@ type Video struct {
 	Language        string          `json:"language"`
 	ResourceURL     url.URL         `json:"resource_url"`
 	StoragePath     string          `json:"-"`
+	Thumbnails      []Thumbnail     `json:"thumbnails,omitempty"`
 }
 
 type UpdateVideoMeta struct {

@@ -38,12 +38,14 @@ type JWTConfig struct {
 }
 
 type VideoConfig struct {
-	S3BucketName           string `env:"BUCKET_NAME" default:""`
-	S3Region               string `env:"BUCKET_REGION" default:""`
-	S3AccessKey            string `env:"BUCKET_ACCESS_KEY" default:""`
-	S3SecretKey            string `env:"BUCKET_SECRET_KEY" default:""`
-	S3UploadCallbackSecret string `env:"BUCKET_UPLOAD_CALLBACK_SECRET" default:""`
-	S3Endpoint             string `env:"BUCKET_ENDPOINT" default:""`
+	S3RawVideoBucketName    string `env:"BUCKET_RAW_NAME" default:""`
+	S3PublicVideoBucketName string `env:"BUCKET_PUBLIC_NAME" default:""`
+	S3ThumbnailBucketName   string `env:"THUMBNAIL_BUCKET_NAME" default:""`
+	S3Region                string `env:"BUCKET_REGION" default:""`
+	S3AccessKey             string `env:"BUCKET_ACCESS_KEY" default:""`
+	S3SecretKey             string `env:"BUCKET_SECRET_KEY" default:""`
+	S3UploadCallbackSecret  string `env:"BUCKET_UPLOAD_CALLBACK_SECRET" default:""`
+	S3Endpoint              string `env:"BUCKET_ENDPOINT" default:""`
 }
 
 const envPrefix = "FLUXIO"

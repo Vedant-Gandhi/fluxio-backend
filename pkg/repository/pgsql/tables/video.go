@@ -30,4 +30,9 @@ type Video struct {
 	Size            float32        `json:"size"`                        // Will be unknown during initial upload. Size is in kb
 	Language        string         `json:"language"`                    // Might be unknown initially
 	StoragePath     string         `gorm:"default:''" json:"storage_path"`
+	Thumbnails      []Thumbnail    `gorm:"foreignKey:VideoID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+func (Video) TableName() string {
+	return "videos"
 }
