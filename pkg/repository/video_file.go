@@ -15,7 +15,7 @@ import (
 )
 
 func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context, id model.VideoID, slug string) (url *url.URL, err error) {
-
+	logger := v.l.With("video_id", id.String())
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
 	path = strings.TrimPrefix(path, fmt.Sprintf("%s/", v.rawVidBketName))
@@ -29,6 +29,7 @@ func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context,
 	rawURL, err := s3Request.Presign(constants.PreSignedVidUploadURLExpireTime)
 
 	if err != nil {
+		logger.Error("Failed to create a presigned URL for video upload", err)
 		err = fluxerrors.ErrVideoURLGenerationFailed
 		return
 	}
@@ -39,7 +40,7 @@ func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context,
 }
 
 func (v *VideoRepository) GetUnProcessedVideoDownloadURL(ctx context.Context, slug string) (url *url.URL, err error) {
-
+	logger := v.l.With("video_slug", slug)
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
 	path = strings.TrimPrefix(path, fmt.Sprintf("%s/", v.rawVidBketName))
@@ -52,6 +53,7 @@ func (v *VideoRepository) GetUnProcessedVideoDownloadURL(ctx context.Context, sl
 	rawURL, err := s3Request.Presign(constants.PreSignedVidTempDownloadURLExpireTime)
 
 	if err != nil {
+		logger.Error("Failed to create a presigned URL for video download", err)
 		err = fluxerrors.ErrVideoURLGenerationFailed
 		return
 	}

@@ -70,7 +70,7 @@ func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig, logger schem
 }
 
 func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
-
+	logger := r.l.With("video_title", videoMeta.Title)
 	if strings.EqualFold(videoMeta.Visibility.String(), "") {
 		videoMeta.Visibility = model.VideoVisibilityPublic
 	}
@@ -78,6 +78,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	slug := utils.CreateURLSafeVideoSlug(videoMeta.Title)
 
 	if strings.EqualFold(slug, "") {
+		logger.Error("Failed to create a new slug for video", nil)
 		err = fluxerrors.ErrFailedToGenerateVideoSlug
 		return
 	}
@@ -95,6 +96,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	err = tx.Error
 
 	if err != nil {
+		logger.Error("Failed to insert a new record in database for video", err)
 		if err == gorm.ErrDuplicatedKey {
 
 			err = fluxerrors.ErrVideoAlreadyExists
@@ -134,6 +136,8 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID model.VideoID) (err error) {
 	vidTable := &tables.Video{}
 
+	logger := r.l.With("video_id", videoID.String())
+
 	tx := r.db.DB.WithContext(ctx).Model(vidTable).
 		Where("id = ?", videoID).
 		Update("retry_count", gorm.Expr("retry_count + 1"))
@@ -141,10 +145,13 @@ func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID 
 	err = tx.Error
 
 	if err != nil {
+		logger.Error("Failed to increment the retry count for a video", err)
+		logger.Debug("Error query vars:", tx.Statement.Vars)
 		return
 	}
 
 	if tx.RowsAffected == 0 {
+		logger.Debug("No rows found to increment the retry count.")
 		err = fluxerrors.ErrVideoNotFound
 		return
 	}
@@ -154,6 +161,8 @@ func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID 
 
 // UpdateMeta updates video metadata with the provided parameters
 func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
+	logger := r.l.With("video_id", id.String())
+
 	// Parse the VideoID to UUID
 	uuid, err := uuid.Parse(id.String())
 	if err != nil {
@@ -162,6 +171,7 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 	// Validate the video status
 	if !status.IsAcceptable() {
+		logger.Debug("Invalid new status for the video to update meta", status.String())
 		return fluxerrors.ErrInvalidVideoStatus
 	}
 
@@ -174,10 +184,12 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
 
 	if tx.Error != nil {
+		logger.Error("Failed to update meta for a video", err)
 		return fluxerrors.ErrVideoMetaUpdateFailed
 	}
 
 	if tx.RowsAffected == 0 {
+		logger.Debug("No rows found to when trying to update the meta.")
 		return fluxerrors.ErrVideoNotFound
 	}
 
@@ -186,6 +198,8 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 // UpdateMeta updates video metadata with the provided parameters
 func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.VideoID, status model.VideoInternalStatus) (err error) {
+	logger := r.l.With("video_id", id.String())
+
 	// Parse the VideoID to UUID
 	uuid, err := uuid.Parse(id.String())
 	if err != nil {
@@ -205,10 +219,12 @@ func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.Vid
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(statusUpdate)
 
 	if tx.Error != nil {
+		logger.Error("Failed to update internal status for a video", err)
 		return fluxerrors.ErrVideoMetaUpdateFailed
 	}
 
 	if tx.RowsAffected == 0 {
+		logger.Debug("No record matched when updating internal video status.")
 		return fluxerrors.ErrVideoNotFound
 	}
 

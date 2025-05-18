@@ -16,6 +16,7 @@ import (
 )
 
 func (v *VideoRepository) CreateThumbnail(ctx context.Context, thumbnail model.Thumbnail) (id model.ThumbnailID, err error) {
+	logger := v.l.With("thumbnail_vid_id", thumbnail.VideoID).With("thumbnail_width", thumbnail.Width)
 
 	if thumbnail.Width == 0 || thumbnail.Height == 0 {
 		err = fluxerrors.ErrInvalidThumbnailDimensions
@@ -24,6 +25,7 @@ func (v *VideoRepository) CreateThumbnail(ctx context.Context, thumbnail model.T
 
 	parsedVidId, err := uuid.Parse(thumbnail.VideoID.String())
 	if err != nil {
+		logger.Error("Video ID is invalid for thumbnail creation", err)
 		err = fluxerrors.ErrInvalidVideoID
 		return
 	}
@@ -41,6 +43,7 @@ func (v *VideoRepository) CreateThumbnail(ctx context.Context, thumbnail model.T
 	tx := v.db.DB.Create(&insertData)
 
 	if tx.Error != nil {
+		logger.Error("Error when creating a new thumbnail in repo", tx.Error)
 		err = fluxerrors.ErrThumbnailCreationFailed
 		return
 	}
@@ -51,7 +54,7 @@ func (v *VideoRepository) CreateThumbnail(ctx context.Context, thumbnail model.T
 }
 
 func (v *VideoRepository) GenerateThumbnailUploadURL(ctx context.Context, id model.VideoID, timestamp uint64, extension string) (url *url.URL, err error) {
-
+	logger := v.l.With("video_id", id.String())
 	path := v.generateThumbnailFileS3Path(id, timestamp, extension)
 
 	if strings.EqualFold(path, "") {
@@ -70,6 +73,7 @@ func (v *VideoRepository) GenerateThumbnailUploadURL(ctx context.Context, id mod
 	rawURL, err := s3Request.Presign(constants.PreSignedVidUploadURLExpireTime)
 
 	if err != nil {
+		logger.Error("Failed to create a presigned URL for thumbnail upload url", err)
 		err = fluxerrors.ErrThumbnailURLGenerationFailed
 		return
 	}

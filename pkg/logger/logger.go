@@ -1,44 +1,83 @@
 package logger
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	"os"
+	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
-type DefaultLogger struct{}
-
-func NewDefaultLogger() *DefaultLogger {
-	return &DefaultLogger{}
+// DefaultLogger implements the Logger interface using zerolog
+type DefaultLogger struct {
+	zLogger zerolog.Logger
 }
 
-func (c *DefaultLogger) Info(msg string, data ...interface{}) {
+func NewDefaultLogger() *DefaultLogger {
+	zLoggerOp := zerolog.ConsoleWriter{
+		NoColor:    false,
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+	}
+
+	zLogger := zerolog.New(zLoggerOp)
+
+	// Add timestamp
+	zLogger.With().Timestamp()
+
+	return &DefaultLogger{
+		zLogger: zLogger,
+	}
+}
+
+// With creates a new logger instance with the added key-value pair
+func (l *DefaultLogger) With(key string, value interface{}) schema.LoggerChain {
+	newLogger := &DefaultLogger{
+		zLogger: l.zLogger.With().Interface(key, value).Logger(),
+	}
+	return newLogger
+}
+
+// WithField adds fields from a map to the logger
+func (l *DefaultLogger) WithField(fields map[string]interface{}) schema.LoggerChain {
+	ctx := l.zLogger.With()
+	for k, v := range fields {
+		ctx = ctx.Interface(k, v)
+	}
+
+	newLogger := &DefaultLogger{
+		zLogger: ctx.Logger(),
+	}
+	return newLogger
+}
+
+func (l *DefaultLogger) Info(msg string, data ...interface{}) {
 	if len(data) > 0 {
-		log.Info().Msgf("%s: %v", msg, data)
+		l.zLogger.Info().Msgf("%s: %v", msg, data)
 		return
 	}
 
-	log.Info().Msg(msg)
+	l.zLogger.Info().Msg(msg)
 }
 
-func (c *DefaultLogger) Warn(msg string) {
-	log.Warn().Msg(msg)
+func (l *DefaultLogger) Warn(msg string) {
+	l.zLogger.Warn().Msg(msg)
 }
 
-func (c *DefaultLogger) Debug(msg string, data ...interface{}) {
+func (l *DefaultLogger) Debug(msg string, data ...interface{}) {
 	isDevelop := os.Getenv("GO_ENV") == "development"
 
 	if !isDevelop {
 		return
 	}
 	if len(data) > 0 {
-		log.Debug().Msgf("%s: %v", msg, data)
+		l.zLogger.Debug().Msgf("%s: %v", msg, data)
 		return
 	}
 
-	log.Debug().Msg(msg)
+	l.zLogger.Debug().Msg(msg)
 }
 
-func (c *DefaultLogger) Error(msg string, err error) {
-	log.Error().Err(err).Msg(msg)
+func (l *DefaultLogger) Error(msg string, err error) {
+	l.zLogger.Error().Err(err).Msg(msg)
 }
