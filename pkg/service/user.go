@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/fluxcrypto"
 	"fluxio-backend/pkg/model"
@@ -15,12 +16,14 @@ const TOKEN_EXPIRY = uint(8 * 60) // 8 hours
 type UserService struct {
 	repo     *repository.UserRepository
 	jService *JWTService
+	l        *schema.Logger
 }
 
-func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService) *UserService {
+func NewUserService(repo *repository.UserRepository, jwtsvc *JWTService, logger *schema.Logger) *UserService {
 	return &UserService{
 		repo:     repo,
 		jService: jwtsvc,
+		l:        logger,
 	}
 }
 

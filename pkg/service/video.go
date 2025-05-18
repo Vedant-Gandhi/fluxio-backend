@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
@@ -23,11 +24,13 @@ import (
 
 type VideoService struct {
 	videRepo *repository.VideoRepository
+	l        *schema.Logger
 }
 
-func NewVideoService(videRepo *repository.VideoRepository) *VideoService {
+func NewVideoService(videRepo *repository.VideoRepository, logger *schema.Logger) *VideoService {
 	return &VideoService{
 		videRepo: videRepo,
+		l:        logger,
 	}
 }
 
