@@ -19,7 +19,7 @@ func NewVideoController(videoService *service.VideoService) *VideoController {
 	}
 }
 
-func (v *VideoController) GenerateVideUploadEntry(c *gin.Context) {
+func (v *VideoController) CreateNewVideo(c *gin.Context) {
 
 	var video model.Video
 
@@ -27,7 +27,7 @@ func (v *VideoController) GenerateVideUploadEntry(c *gin.Context) {
 		response.Error(c, response.StatusBadRequest, "Invalid request payload", "The payload is not valid.")
 		return
 	}
-	video, uploadURL, err := v.videoService.CreateVideoEntry(c, video)
+	video, uploadURL, err := v.videoService.AddVideo(c, video)
 	if err != nil {
 		if err == fluxerrors.ErrDuplicateVideoTitle {
 			response.Error(c, response.StatusConflict, response.MsgDuplicateVideoTitle, err.Error())

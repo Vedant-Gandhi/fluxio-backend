@@ -23,7 +23,7 @@ func NewVideoRouter(VideoController *controller.VideoController, middleware *mid
 func (r *VideoRouter) RegisterRoutes(router *gin.Engine) {
 	VideoGroup := router.Group("/api/v1/video")
 	{
-		VideoGroup.POST("/upload-init", r.middleware.Auth.Add(), r.VideoController.GenerateVideUploadEntry)
+		VideoGroup.POST("/upload-init", r.middleware.Auth.Add(), r.VideoController.CreateNewVideo)
 
 	}
 }

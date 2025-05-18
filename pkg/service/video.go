@@ -31,7 +31,7 @@ func NewVideoService(videRepo *repository.VideoRepository) *VideoService {
 	}
 }
 
-func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
+func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
 	video, err = s.videRepo.CreateVideoMeta(ctx, vidMeta)
 
 	if err != nil {
