@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
@@ -13,11 +14,13 @@ import (
 
 type AuthController struct {
 	userService *service.UserService
+	l           *schema.Logger
 }
 
-func NewAuthController(userService *service.UserService) *AuthController {
+func NewAuthController(userService *service.UserService, logger *schema.Logger) *AuthController {
 	return &AuthController{
 		userService: userService,
+		l:           logger,
 	}
 }
 

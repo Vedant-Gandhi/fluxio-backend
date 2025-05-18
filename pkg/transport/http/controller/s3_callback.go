@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
@@ -15,12 +16,16 @@ import (
 type S3CallbackController struct {
 	bucketName string
 	vidSvc     *service.VideoService
+
+	l *schema.Logger
 }
 
-func NewS3CallbackController(bucketName string, videoSvc *service.VideoService) *S3CallbackController {
+func NewS3CallbackController(bucketName string, videoSvc *service.VideoService, logger *schema.Logger) *S3CallbackController {
 	return &S3CallbackController{
 		bucketName: bucketName,
 		vidSvc:     videoSvc,
+
+		l: logger,
 	}
 }
 

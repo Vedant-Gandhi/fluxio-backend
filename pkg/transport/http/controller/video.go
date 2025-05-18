@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
@@ -11,11 +12,14 @@ import (
 
 type VideoController struct {
 	videoService *service.VideoService
+
+	l *schema.Logger
 }
 
-func NewVideoController(videoService *service.VideoService) *VideoController {
+func NewVideoController(videoService *service.VideoService, logger *schema.Logger) *VideoController {
 	return &VideoController{
 		videoService: videoService,
+		l:            logger,
 	}
 }
 
