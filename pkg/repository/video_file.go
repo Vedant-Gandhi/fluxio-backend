@@ -18,7 +18,7 @@ func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context,
 
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.rawVidBketName))
+	path = strings.TrimPrefix(path, fmt.Sprintf("%s/", v.rawVidBketName))
 
 	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket:      aws.String(v.rawVidBketName),
@@ -42,7 +42,7 @@ func (v *VideoRepository) GetUnProcessedVideoDownloadURL(ctx context.Context, sl
 
 	path := v.generateVideoFileS3Path(slug)
 	// Remove the bucket name from the path to avoid double prefixing.
-	path = strings.TrimLeft(path, fmt.Sprintf("%s/", v.rawVidBketName))
+	path = strings.TrimPrefix(path, fmt.Sprintf("%s/", v.rawVidBketName))
 
 	s3Request, _ := v.s3Client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(v.rawVidBketName),
