@@ -57,7 +57,9 @@ func NewServer() {
 
 	// Middleware
 	authMiddleware := middleware.NewAuthMiddleware(userService, jwtService, logr)
-	middleware := middleware.NewMiddleware(authMiddleware)
+	middlewares := middleware.NewMiddleware(&middleware.MiddlewareList{
+		Auth: authMiddleware,
+	})
 
 	// Controllers
 	authController := controller.NewAuthController(userService, logr)
@@ -67,9 +69,9 @@ func NewServer() {
 	s3Controller := controller.NewS3CallbackController(cfg.VideoCfg.S3RawVideoBucketName, videoService, logr)
 
 	// Route registrars
-	authRouter := routes.NewAuthRouter(authController, middleware)
-	videoRouter := routes.NewVideoRouter(videoController, middleware)
-	s3Router := routes.NewAWSCallbackRouter(s3Controller, middleware)
+	authRouter := routes.NewAuthRouter(authController, middlewares)
+	videoRouter := routes.NewVideoRouter(videoController, middlewares)
+	s3Router := routes.NewAWSCallbackRouter(s3Controller, middlewares)
 
 	// Create and start HTTP router
 	router := http.NewRouter(

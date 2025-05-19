@@ -1,11 +1,15 @@
 package middleware
 
+type MiddlewareList struct {
+	Auth *AuthMiddleware
+}
+
 type Middleware struct {
 	Auth *AuthMiddleware
 }
 
-func NewMiddleware(auth *AuthMiddleware) *Middleware {
+func NewMiddleware(list *MiddlewareList) *Middleware {
 	return &Middleware{
-		Auth: auth,
+		Auth: list.Auth,
 	}
 }
