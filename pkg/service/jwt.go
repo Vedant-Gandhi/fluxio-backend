@@ -12,15 +12,14 @@ import (
 
 type JWTService struct {
 	secret string
-	l      schema.Logger
+	logger schema.Logger
 }
 
 func NewJWTService(secret string, logger schema.Logger) *JWTService {
-	return &JWTService{secret: secret, l: logger}
+	return &JWTService{secret: secret, logger: logger}
 }
 
 func (s *JWTService) GenerateToken(payload model.JWTTokenClaims, exp time.Time) (token string, err error) {
-
 	// Set default values for the payload
 	if strings.EqualFold(payload.Sub, "") {
 		payload.Sub = "user"
