@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"strings"
@@ -11,14 +12,14 @@ import (
 
 type JWTService struct {
 	secret string
+	logger schema.Logger
 }
 
-func NewJWTService(secret string) *JWTService {
-	return &JWTService{secret: secret}
+func NewJWTService(secret string, logger schema.Logger) *JWTService {
+	return &JWTService{secret: secret, logger: logger}
 }
 
 func (s *JWTService) GenerateToken(payload model.JWTTokenClaims, exp time.Time) (token string, err error) {
-
 	// Set default values for the payload
 	if strings.EqualFold(payload.Sub, "") {
 		payload.Sub = "user"

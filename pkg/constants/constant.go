@@ -27,3 +27,19 @@ const (
 	VidSizeDecimalPrecision = 3
 	TotalThumbnailCount     = 3
 )
+
+var (
+
+	// Declare it here to reduce creation costs for the GC.
+	ValidVideoMimes = []string{
+		"video/mp4",        // MP4 format
+		"video/webm",       // WebM format
+		"video/ogg",        // Ogg video
+		"video/3gpp",       // 3GPP mobile video
+		"video/quicktime",  // MOV format
+		"video/x-msvideo",  // AVI format
+		"video/mpeg",       // MPEG format
+		"video/x-matroska", // MKV format
+		"video/mp2t",       // MPEG Transport Stream (.ts files)
+	}
+)

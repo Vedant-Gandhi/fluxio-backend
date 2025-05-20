@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"fluxio-backend/pkg/constants"
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -115,4 +117,9 @@ func CreateURLSafeThumbnailFileName(videoID string, timestamp string) (fileName 
 	}
 
 	return "thumbnail-" + fileName
+}
+
+func CheckVideoMimeTypeValidity(mimeType string) (valid bool) {
+	valid = slices.Contains(constants.ValidVideoMimes, mimeType)
+	return
 }

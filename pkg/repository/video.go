@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fluxio-backend/pkg/common/schema"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/repository/pgsql"
@@ -20,6 +21,7 @@ import (
 
 type VideoRepository struct {
 	db *pgsql.PgSQL
+	l  schema.Logger
 
 	s3Client            *s3.S3
 	rawVidBketName      string
@@ -37,7 +39,7 @@ type VideoRepositoryConfig struct {
 	S3Endpoint              string
 }
 
-func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoRepository {
+func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig, logger schema.Logger) *VideoRepository {
 
 	url, _ := url.Parse(cfg.S3Endpoint)
 
@@ -57,11 +59,18 @@ func NewVideoRepository(db *pgsql.PgSQL, cfg VideoRepositoryConfig) *VideoReposi
 
 	s3Client := s3.New(awsSession)
 
-	return &VideoRepository{db: db, s3Client: s3Client, rawVidBketName: cfg.S3RawVideoBucketName, pubVidBketName: cfg.S3PublicVideoBucketName, thumbnailBucketName: cfg.S3ThumbnailBucketName}
+	return &VideoRepository{
+		db:                  db,
+		s3Client:            s3Client,
+		rawVidBketName:      cfg.S3RawVideoBucketName,
+		pubVidBketName:      cfg.S3PublicVideoBucketName,
+		thumbnailBucketName: cfg.S3ThumbnailBucketName,
+		l:                   logger,
+	}
 }
 
 func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.Video) (video model.Video, err error) {
-
+	logger := r.l.With("video_title", videoMeta.Title)
 	if strings.EqualFold(videoMeta.Visibility.String(), "") {
 		videoMeta.Visibility = model.VideoVisibilityPublic
 	}
@@ -69,6 +78,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	slug := utils.CreateURLSafeVideoSlug(videoMeta.Title)
 
 	if strings.EqualFold(slug, "") {
+		logger.Error("Failed to create a new slug for video", nil)
 		err = fluxerrors.ErrFailedToGenerateVideoSlug
 		return
 	}
@@ -76,7 +86,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	vidTable := &tables.Video{
 		Title:      videoMeta.Title,
 		UserID:     videoMeta.UserID,
-		Status:     model.VideoStatusPending.String(),
+		Status:     model.VideoStatusUploadPending.String(),
 		Visibility: videoMeta.Visibility.String(),
 		Slug:       slug,
 	}
@@ -86,6 +96,7 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 	err = tx.Error
 
 	if err != nil {
+		logger.Error("Failed to insert a new record in database for video", err)
 		if err == gorm.ErrDuplicatedKey {
 
 			err = fluxerrors.ErrVideoAlreadyExists
@@ -125,6 +136,8 @@ func (r *VideoRepository) CreateVideoMeta(ctx context.Context, videoMeta model.V
 func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID model.VideoID) (err error) {
 	vidTable := &tables.Video{}
 
+	logger := r.l.With("video_id", videoID.String())
+
 	tx := r.db.DB.WithContext(ctx).Model(vidTable).
 		Where("id = ?", videoID).
 		Update("retry_count", gorm.Expr("retry_count + 1"))
@@ -132,10 +145,13 @@ func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID 
 	err = tx.Error
 
 	if err != nil {
+		logger.Error("Failed to increment the retry count for a video", err)
+		logger.Debug("Error query vars:", tx.Statement.Vars)
 		return
 	}
 
 	if tx.RowsAffected == 0 {
+		logger.Debug("No rows found to increment the retry count.")
 		err = fluxerrors.ErrVideoNotFound
 		return
 	}
@@ -144,7 +160,49 @@ func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID 
 }
 
 // UpdateMeta updates video metadata with the provided parameters
-func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
+func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.Video) (err error) {
+	logger := r.l.With("video_id", id.String())
+
+	// Parse the VideoID to UUID
+	uuid, err := uuid.Parse(id.String())
+	if err != nil {
+		return fluxerrors.ErrInvalidVideoID
+	}
+
+	// Validate the video status
+	if !status.IsAcceptable() {
+		logger.Debug("Invalid new status for the video to update meta", status.String())
+		return fluxerrors.ErrInvalidVideoStatus
+	}
+
+	params.Status = status
+
+	// Create a map of fields to update based on the params struct
+	updateData := r.buildUpdateVideoDataMap(params)
+
+	// Execute the update
+	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
+	err = tx.Error
+
+	if err != nil {
+		logger.Error("Failed to update meta for a video", err)
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
+	}
+
+	if tx.RowsAffected == 0 {
+		logger.Debug("No rows found to when trying to update the meta.")
+		err = fluxerrors.ErrVideoNotFound
+		return
+	}
+
+	return nil
+}
+
+// UpdateMeta updates video metadata with the provided parameters
+func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.VideoID, status model.VideoInternalStatus) (err error) {
+	logger := r.l.With("video_id", id.String())
+
 	// Parse the VideoID to UUID
 	uuid, err := uuid.Parse(id.String())
 	if err != nil {
@@ -156,18 +214,24 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 		return fluxerrors.ErrInvalidVideoStatus
 	}
 
-	// Create a map of fields to update based on the params struct
-	updateData := r.buildUpdateVideoDataMap(status, params)
+	statusUpdate := map[string]interface{}{
+		"internal_status": status.String(),
+	}
 
 	// Execute the update
-	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
+	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(statusUpdate)
+	err = tx.Error
 
-	if tx.Error != nil {
-		return fluxerrors.ErrVideoMetaUpdateFailed
+	if err != nil {
+		logger.Error("Failed to update internal status for a video", err)
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
 	}
 
 	if tx.RowsAffected == 0 {
-		return fluxerrors.ErrVideoNotFound
+		logger.Debug("No record matched when updating internal video status.")
+		err = fluxerrors.ErrVideoNotFound
+		return
 	}
 
 	return nil
@@ -175,13 +239,18 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateVideoDataMap(params model.Video) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 
 	// Add StoragePath from params
 	if !strings.EqualFold(params.StoragePath, "") {
 		updateData["storage_path"] = params.StoragePath
+	}
+
+	// Add Internal Status from params
+	if !strings.EqualFold(params.InternalStatus.String(), "") {
+		updateData["internal_status"] = params.InternalStatus
 	}
 
 	// Add other fields from params, only if they're not zero values
@@ -216,8 +285,8 @@ func (r *VideoRepository) buildUpdateVideoDataMap(status model.VideoStatus, para
 	}
 
 	// Status
-	if status.IsAcceptable() {
-		updateData["status"] = status.String()
+	if params.Status.IsAcceptable() {
+		updateData["status"] = params.Status.String()
 	}
 
 	// Length

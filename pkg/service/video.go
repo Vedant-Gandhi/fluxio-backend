@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fluxio-backend/pkg/common/schema"
 	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
@@ -23,32 +24,50 @@ import (
 
 type VideoService struct {
 	videRepo *repository.VideoRepository
+	l        schema.Logger
 }
 
-func NewVideoService(videRepo *repository.VideoRepository) *VideoService {
+func NewVideoService(videRepo *repository.VideoRepository, logger schema.Logger) *VideoService {
 	return &VideoService{
 		videRepo: videRepo,
+		l:        logger,
 	}
 }
 
-func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
-	video, err = s.videRepo.CreateVideoMeta(ctx, vidMeta)
+func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video, mimeType string) (video model.Video, url url.URL, err error) {
+	logger := s.l.With("title", vidMeta.Title)
 
-	if err != nil {
+	if !utils.CheckVideoMimeTypeValidity(mimeType) {
+		err = fluxerrors.ErrInvalidVideoExtension
+		logger.Error("Video Format is required", err)
 		return
 	}
 
+	splitMime := strings.SplitN(mimeType, "/", 2)
+
+	// Set the format type.
+	vidMeta.Format = splitMime[1]
+
+	video, err = s.videRepo.CreateVideoMeta(ctx, vidMeta)
+	if err != nil {
+		logger.Error("Failed to create video metadata", err)
+		return
+	}
+
+	logger = logger.With("video_id", video.ID.String())
+
 	// Disallow upload if the video is not in a pending state or if the retry count is greater than 3.
-	if video.RetryCount > constants.MaxVideoURLRegenerateRetryCount || video.Status != model.VideoStatusPending {
+	if video.RetryCount > constants.MaxVideoURLRegenerateRetryCount || video.Status != model.VideoStatusUploadPending {
 		err = fluxerrors.ErrVideoUploadNotAllowed
+		logger.Error("Video upload not allowed", err)
 		return
 	}
 
 	// Generate the upload URL for the video.
-	ptrURL, err := s.videRepo.GenerateUnProcessedVideoUploadURL(ctx, video.ID, video.Slug)
-
+	ptrURL, err := s.videRepo.GenerateUnProcessedVideoUploadURL(ctx, video.ID, video.Slug, mimeType)
 	if err != nil {
 		err = fluxerrors.ErrVideoURLGenerationFailed
+		logger.Error("Failed to generate video upload URL", err)
 		_ = s.videRepo.IncrementVideoRetryCount(ctx, video.ID)
 
 		// Prevent returning the video if the url generation fails.
@@ -57,83 +76,106 @@ func (s *VideoService) CreateVideoEntry(ctx context.Context, vidMeta model.Video
 	}
 
 	url = *ptrURL
-
+	logger.Info("Video metadata created successfully", "slug", video.Slug)
 	return
 }
 
 // Handles the meta update after the video file is uploaded.
-func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.UpdateVideoMeta) (err error) {
+func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.Video) (err error) {
+	logger := s.l.With("slug", slug)
+
 	if strings.EqualFold(params.StoragePath, "") {
 		err = fluxerrors.ErrMalformedStoragePath
+		logger.Error("Invalid storage path", err)
 		return
 	}
 
 	if strings.EqualFold(slug, "") {
 		err = fluxerrors.ErrInvalidVideoSlug
+		logger.Error("Invalid video slug", err)
 		return
 	}
 
 	existData, err := s.videRepo.GetProcessingDetailsBySlug(ctx, slug)
-
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
+			logger.Error("Video not found", err)
 			return
 		}
 
+		logger.Error("Failed to get video processing details", err)
 		err = fluxerrors.ErrUnknown
 		return
 	}
 
+	logger = logger.With("video_id", existData.ID.String())
+
 	// If video status is not pending or retry limit is over end it.
-	if existData.Status != model.VideoStatusPending || existData.RetryCount > constants.MaxVideoURLRegenerateRetryCount {
+	if existData.Status != model.VideoStatusUploadPending || existData.RetryCount > constants.MaxVideoURLRegenerateRetryCount {
 		err = fluxerrors.ErrInvalidVideoStatus
+		logger.Error("Invalid video status for update", err)
 		return
 	}
 
-	err = s.videRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
+	err = s.videRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.Video{
 		StoragePath: params.StoragePath,
 	})
 
 	if err != nil {
 		if err == fluxerrors.ErrInvalidVideoID || err == fluxerrors.ErrMalformedStoragePath {
+			logger.Error("Failed to update video metadata", err)
 			return
 		}
 
+		logger.Error("Video metadata update failed", err)
 		err = fluxerrors.ErrVideoMetaUpdateFailed
 		return
 	}
 
+	logger.Info("Video upload status updated to processing")
 	return
 }
 
 // Performs all the post upload processing for the video.
 func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug string) (err error) {
+	logger := s.l.With("slug", slug)
+	logger.Info("Starting post-upload processing")
+
 	videoMeta, err := s.videRepo.GetVideoBySlug(ctx, slug)
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
+			logger.Error("Video not found for processing", err)
 			return
 		}
+		logger.Error("Failed to get video by slug", err)
 		err = fluxerrors.ErrUnknown
 		return
 	}
 
+	logger = logger.With("video_id", videoMeta.ID.String())
+
 	if videoMeta.Status != model.VideoStatusProcessing {
 		err = fluxerrors.ErrInvalidVideoStatus
+		logger.Error("Invalid video status for processing", err)
 		return
 	}
 
 	downloadURL, err := s.videRepo.GetUnProcessedVideoDownloadURL(ctx, videoMeta.Slug)
 	if err != nil {
 		if err == fluxerrors.ErrVideoURLGenerationFailed {
+			logger.Error("Failed to generate video download URL", err)
 			return
 		}
+		logger.Error("Unknown error getting video download URL", err)
 		err = fluxerrors.ErrUnknown
 		return
 	}
 
 	// Extract the whole video meta data like size, type, width, height,etc
+	logger.Info("Extracting video metadata")
 	rawProbe, err := ffmpeg_go.Probe(downloadURL.String())
 	if err != nil {
+		logger.Error("Failed to probe video using ffmpeg", err)
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -141,11 +183,13 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	var probe model.FFProbeOutput
 	err = json.Unmarshal([]byte(rawProbe), &probe)
 	if err != nil {
+		logger.Error("Failed to parse ffprobe output", err)
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
 
 	if probe.Format.NbStreams != 2 {
+		logger.Error("Unsupported video stream count", nil)
 		err = fluxerrors.ErrVideoStreamCountNotSupported
 		return
 	}
@@ -162,11 +206,12 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		videoStream = probe.Streams[1]
 	}
 
-	updateData := model.UpdateVideoMeta{}
+	updateData := model.Video{}
 	updateData.AudioCodec = audioStream.CodecName
 
 	sampleRate, err := strconv.Atoi(audioStream.SampleRate)
 	if err != nil {
+		logger.Error("Failed to parse audio sample rate", err)
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -178,6 +223,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 
 	duration, err := strconv.ParseFloat(probe.Format.Duration, 64)
 	if err != nil {
+		logger.Error("Failed to parse video duration", err)
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -186,6 +232,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 
 	size, err := strconv.ParseFloat(probe.Format.Size, 64)
 	if err != nil {
+		logger.Error("Failed to parse video size", err)
 		err = fluxerrors.ErrVideoPhysicalMetaExtractionFailed
 		return
 	}
@@ -193,18 +240,22 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 	calcPrec := math.Pow(10, float64(constants.VidSizeDecimalPrecision)) // Stores the power precision to round the size.
 	updateData.Size = float32(math.Round(size*calcPrec) / calcPrec)      // Round the size to decimal places.
 
-	err = s.videRepo.UpdateMeta(ctx, videoMeta.ID, model.VideoStatusMetaExtracted, updateData)
+	err = s.videRepo.UpdateInternalStatus(ctx, videoMeta.ID, model.VidInternalStatusMetaExtracted)
 	if err != nil {
 		if err == fluxerrors.ErrVideoNotFound {
+			logger.Error("Video not found when updating status", err)
 			return
 		}
+		logger.Error("Failed to update video internal status", err)
 		err = fluxerrors.ErrVideoMetaUpdateFailed
 		return
 	}
 
 	// Create thumbnails for the video and store them in the db
+	logger.Info("Starting thumbnail generation")
 	thumbnailTempDir, err := os.MkdirTemp(os.TempDir(), "fluxio-thumbnails-*")
 	if err != nil {
+		logger.Error("Failed to create temporary directory for thumbnails", err)
 		err = fluxerrors.ErrThumbnailCreationFailed
 		return
 	}
@@ -316,11 +367,11 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		successThumbnailCount++
 	}
 
+	logger.Info("Video processing completed successfully", "thumbnails_created", successThumbnailCount)
 	return
 }
 
 func (v *VideoService) generateDistinctTimestamps(videoDuration uint64) []uint64 {
-
 	if videoDuration < 4 {
 		if videoDuration < 2 {
 			return []uint64{videoDuration}
