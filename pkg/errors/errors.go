@@ -58,6 +58,7 @@ var (
 	ErrVideoPhysicalMetaExtractionFailed = errors.New("failed to extract video physical meta data")
 
 	ErrVideoStreamCountNotSupported = errors.New("video stream count not supported")
+	ErrInvalidVideoExtension        = errors.New("video extension is not supported")
 )
 
 // Thumbnail errors

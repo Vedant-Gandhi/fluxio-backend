@@ -34,8 +34,19 @@ func NewVideoService(videRepo *repository.VideoRepository, logger schema.Logger)
 	}
 }
 
-func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video) (video model.Video, url url.URL, err error) {
+func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video, mimeType string) (video model.Video, url url.URL, err error) {
 	logger := s.l.With("title", vidMeta.Title)
+
+	splitMime := strings.SplitN(mimeType, "/", 2)
+
+	if len(splitMime) != 2 || !strings.EqualFold(splitMime[0], "video") {
+		err = fluxerrors.ErrInvalidVideoExtension
+		logger.Error("Video Format is required", err)
+		return
+	}
+
+	// Set the format type.
+	vidMeta.Format = splitMime[1]
 
 	video, err = s.videRepo.CreateVideoMeta(ctx, vidMeta)
 	if err != nil {
@@ -53,7 +64,7 @@ func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video) (video
 	}
 
 	// Generate the upload URL for the video.
-	ptrURL, err := s.videRepo.GenerateUnProcessedVideoUploadURL(ctx, video.ID, video.Slug)
+	ptrURL, err := s.videRepo.GenerateUnProcessedVideoUploadURL(ctx, video.ID, video.Slug, mimeType)
 	if err != nil {
 		err = fluxerrors.ErrVideoURLGenerationFailed
 		logger.Error("Failed to generate video upload URL", err)

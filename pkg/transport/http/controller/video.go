@@ -6,9 +6,14 @@ import (
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+type createVidRequest struct {
+	model.Video
+}
 
 type VideoController struct {
 	videoService *service.VideoService
@@ -37,9 +42,17 @@ func (v *VideoController) CreateNewVideo(c *gin.Context) {
 		return
 	}
 
+	mimeType := c.GetHeader("X-Upload-Mime-Type")
+
+	if strings.EqualFold(mimeType, "") {
+		logger.Debug("Invalid video mimeType", mimeType)
+		response.Error(c, response.StatusBadRequest, "Invalid request payload", "The X-Upload-Mime-Type header is not found.")
+		return
+	}
+
 	logger = logger.With("title", video.Title)
 
-	video, uploadURL, err := v.videoService.AddVideo(c, video)
+	video, uploadURL, err := v.videoService.AddVideo(c, video, mimeType)
 	if err != nil {
 		if err == fluxerrors.ErrDuplicateVideoTitle {
 			logger.Info("Video creation failed - duplicate title")
