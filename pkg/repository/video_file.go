@@ -23,7 +23,7 @@ func (v *VideoRepository) GenerateUnProcessedVideoUploadURL(ctx context.Context,
 	s3Request, _ := v.s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket:      aws.String(v.rawVidBketName),
 		Key:         aws.String(path),
-		ContentType: aws.String("video/mp4"),
+		ContentType: aws.String(mimeType),
 	})
 
 	rawURL, err := s3Request.Presign(constants.PreSignedVidUploadURLExpireTime)

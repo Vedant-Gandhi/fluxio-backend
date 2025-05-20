@@ -80,7 +80,12 @@ type VideoInternalStatus string
 // This function checks if the video status is of a valid value.
 func (s VideoInternalStatus) IsAcceptable() bool {
 	switch s {
-	case VidInternalStatusUploadPending:
+	case VidInternalStatusUploadPending,
+		VidInternalStatusMetaExtracted,
+		VidInternalStatusThumbnailGenerated,
+		VidInternalStatusProcessingCompleted,
+		VidInternalStatusThumbnailFailed,
+		VidInternalStatusMetaFailed:
 		return true
 	default:
 		return false
