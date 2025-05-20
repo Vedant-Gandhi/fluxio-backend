@@ -2,10 +2,13 @@ package controller
 
 import (
 	"fluxio-backend/pkg/common/schema"
+	"fluxio-backend/pkg/constants"
 	fluxerrors "fluxio-backend/pkg/errors"
 	"fluxio-backend/pkg/model"
 	"fluxio-backend/pkg/service"
 	"fluxio-backend/pkg/transport/http/response"
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -57,6 +60,13 @@ func (v *VideoController) CreateNewVideo(c *gin.Context) {
 		if err == fluxerrors.ErrDuplicateVideoTitle {
 			logger.Info("Video creation failed - duplicate title")
 			response.Error(c, response.StatusConflict, response.MsgDuplicateVideoTitle, err.Error())
+			return
+		}
+
+		if err == fluxerrors.ErrInvalidVideoExtension {
+			supportedTypes := strings.Join(constants.ValidVideoMimes, ",")
+			logger.Info("Video Extension is invalid", mimeType)
+			response.Error(c, http.StatusUnsupportedMediaType, "Invalid Video Format", fmt.Sprintf("Video Format is not supported. Supported video types are - %s", supportedTypes))
 			return
 		}
 
