@@ -37,13 +37,13 @@ func NewVideoService(videRepo *repository.VideoRepository, logger schema.Logger)
 func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video, mimeType string) (video model.Video, url url.URL, err error) {
 	logger := s.l.With("title", vidMeta.Title)
 
-	splitMime := strings.SplitN(mimeType, "/", 2)
-
-	if len(splitMime) != 2 || !strings.EqualFold(splitMime[0], "video") {
+	if !utils.CheckVideoMimeTypeValidity(mimeType) {
 		err = fluxerrors.ErrInvalidVideoExtension
 		logger.Error("Video Format is required", err)
 		return
 	}
+
+	splitMime := strings.SplitN(mimeType, "/", 2)
 
 	// Set the format type.
 	vidMeta.Format = splitMime[1]

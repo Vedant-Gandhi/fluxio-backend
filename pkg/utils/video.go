@@ -3,11 +3,28 @@ package utils
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
 
 	"golang.org/x/text/unicode/norm"
+)
+
+var (
+
+	// Declare it here to reduce creation costs for the GC.
+	validVidMimes = []string{
+		"video/mp4",        // MP4 format
+		"video/webm",       // WebM format
+		"video/ogg",        // Ogg video
+		"video/3gpp",       // 3GPP mobile video
+		"video/quicktime",  // MOV format
+		"video/x-msvideo",  // AVI format
+		"video/mpeg",       // MPEG format
+		"video/x-matroska", // MKV format
+		"video/mp2t",       // MPEG Transport Stream (.ts files)
+	}
 )
 
 func CreateURLSafeVideoSlug(title string) (slug string) {
@@ -115,4 +132,9 @@ func CreateURLSafeThumbnailFileName(videoID string, timestamp string) (fileName 
 	}
 
 	return "thumbnail-" + fileName
+}
+
+func CheckVideoMimeTypeValidity(mimeType string) (valid bool) {
+	valid = slices.Contains(validVidMimes, mimeType)
+	return
 }
