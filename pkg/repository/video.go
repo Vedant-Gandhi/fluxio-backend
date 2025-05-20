@@ -160,7 +160,7 @@ func (r *VideoRepository) IncrementVideoRetryCount(ctx context.Context, videoID 
 }
 
 // UpdateMeta updates video metadata with the provided parameters
-func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.UpdateVideoMeta) (err error) {
+func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, status model.VideoStatus, params model.Video) (err error) {
 	logger := r.l.With("video_id", id.String())
 
 	// Parse the VideoID to UUID
@@ -233,7 +233,7 @@ func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.Vid
 
 // buildUpdateDataMap is a private helper method that constructs the update data map
 // from the provided status and UpdateVideoMeta parameters
-func (r *VideoRepository) buildUpdateVideoDataMap(params model.UpdateVideoMeta) map[string]interface{} {
+func (r *VideoRepository) buildUpdateVideoDataMap(params model.Video) map[string]interface{} {
 	// Initialize with status and reset retry count
 	updateData := map[string]interface{}{}
 

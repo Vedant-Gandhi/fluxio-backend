@@ -57,7 +57,7 @@ func (s *S3CallbackController) HandleVideoUploadEvent(c *gin.Context) {
 			recordLogger = recordLogger.With("video_slug", videoSlug).With("object_size", objectSize)
 			recordLogger.Info("Processing video upload")
 
-			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), videoSlug, model.UpdateVideoMeta{
+			err := s.vidSvc.UpdateUploadStatus(c.Request.Context(), videoSlug, model.Video{
 				StoragePath: record.S3.Object.Key,
 			})
 

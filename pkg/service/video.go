@@ -81,7 +81,7 @@ func (s *VideoService) AddVideo(ctx context.Context, vidMeta model.Video, mimeTy
 }
 
 // Handles the meta update after the video file is uploaded.
-func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.UpdateVideoMeta) (err error) {
+func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, params model.Video) (err error) {
 	logger := s.l.With("slug", slug)
 
 	if strings.EqualFold(params.StoragePath, "") {
@@ -117,7 +117,7 @@ func (s *VideoService) UpdateUploadStatus(ctx context.Context, slug string, para
 		return
 	}
 
-	err = s.videRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.UpdateVideoMeta{
+	err = s.videRepo.UpdateMeta(ctx, existData.ID, model.VideoStatusProcessing, model.Video{
 		StoragePath: params.StoragePath,
 	})
 
@@ -206,7 +206,7 @@ func (s *VideoService) PerformPostUploadProcessing(ctx context.Context, slug str
 		videoStream = probe.Streams[1]
 	}
 
-	updateData := model.UpdateVideoMeta{}
+	updateData := model.Video{}
 	updateData.AudioCodec = audioStream.CodecName
 
 	sampleRate, err := strconv.Atoi(audioStream.SampleRate)
