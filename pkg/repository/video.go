@@ -220,8 +220,9 @@ func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.Vid
 
 	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(statusUpdate)
+	err = tx.Error
 
-	if tx.Error != nil {
+	if err != nil {
 		logger.Error("Failed to update internal status for a video", err)
 		return fluxerrors.ErrVideoMetaUpdateFailed
 	}
