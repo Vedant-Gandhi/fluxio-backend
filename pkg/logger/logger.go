@@ -39,7 +39,7 @@ func (l *DefaultLogger) With(key string, value interface{}) schema.LoggerChain {
 }
 
 // WithField adds fields from a map to the logger
-func (l *DefaultLogger) WithField(fields map[string]interface{}) schema.LoggerChain {
+func (l *DefaultLogger) WithFields(fields map[string]interface{}) schema.LoggerChain {
 	ctx := l.zLogger.With()
 	for k, v := range fields {
 		ctx = ctx.Interface(k, v)

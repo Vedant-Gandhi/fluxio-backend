@@ -30,10 +30,7 @@ func NewS3CallbackController(bucketName string, videoSvc *service.VideoService, 
 }
 
 func (s *S3CallbackController) HandleVideoUploadEvent(c *gin.Context) {
-	logger := s.l.WithField(map[string]interface{}{
-		"handler": "S3Callback",
-		"bucket":  s.bucketName,
-	})
+	logger := s.l.With("bucket", s.bucketName)
 
 	logger.Info("Received S3 event notification")
 

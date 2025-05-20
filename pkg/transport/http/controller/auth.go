@@ -31,10 +31,7 @@ type userRegisterRequest struct {
 }
 
 func (a *AuthController) RegisterUser(c *gin.Context) {
-	logger := a.l.WithField(map[string]interface{}{
-		"client_ip": c.ClientIP(),
-		"path":      c.FullPath(),
-	})
+	logger := a.l.With("client_ip", c.ClientIP()).With("request_path", c.Request.URL.Path)
 
 	var rawUser userRegisterRequest
 
@@ -51,6 +48,10 @@ func (a *AuthController) RegisterUser(c *gin.Context) {
 		response.Error(c, response.StatusBadRequest, "Invalid Password", "The password sent by the user is empty.")
 		return
 	}
+
+	logger = logger.WithFields(map[string]interface{}{
+		"email": rawUser.Email,
+	})
 
 	user := model.User{
 		Username: rawUser.Username,
@@ -94,10 +95,7 @@ type userLoginRequest struct {
 }
 
 func (a *AuthController) LoginUser(c *gin.Context) {
-	logger := a.l.WithField(map[string]interface{}{
-		"client_ip": c.ClientIP(),
-		"path":      c.FullPath(),
-	})
+	logger := a.l.With("client_ip", c.ClientIP()).With("request_path", c.Request.URL.Path)
 
 	var loginData userLoginRequest
 	if err := c.ShouldBindJSON(&loginData); err != nil {
