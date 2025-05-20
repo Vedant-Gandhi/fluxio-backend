@@ -224,12 +224,14 @@ func (r *VideoRepository) UpdateInternalStatus(ctx context.Context, id model.Vid
 
 	if err != nil {
 		logger.Error("Failed to update internal status for a video", err)
-		return fluxerrors.ErrVideoMetaUpdateFailed
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
 	}
 
 	if tx.RowsAffected == 0 {
 		logger.Debug("No record matched when updating internal video status.")
-		return fluxerrors.ErrVideoNotFound
+		err = fluxerrors.ErrVideoNotFound
+		return
 	}
 
 	return nil
