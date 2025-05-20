@@ -24,11 +24,7 @@ func NewVideoController(videoService *service.VideoService, logger schema.Logger
 }
 
 func (v *VideoController) CreateNewVideo(c *gin.Context) {
-	logger := v.l.WithFields(map[string]interface{}{
-		"client_ip": c.ClientIP(),
-		"path":      c.FullPath(),
-		"method":    c.Request.Method,
-	})
+	logger := v.l
 
 	logger.Info("Handling video creation request")
 
