@@ -182,15 +182,18 @@ func (r *VideoRepository) UpdateMeta(ctx context.Context, id model.VideoID, stat
 
 	// Execute the update
 	tx := r.db.DB.WithContext(ctx).Model(&tables.Video{}).Where("id = ?", uuid).Updates(updateData)
+	err = tx.Error
 
-	if tx.Error != nil {
+	if err != nil {
 		logger.Error("Failed to update meta for a video", err)
-		return fluxerrors.ErrVideoMetaUpdateFailed
+		err = fluxerrors.ErrVideoMetaUpdateFailed
+		return
 	}
 
 	if tx.RowsAffected == 0 {
 		logger.Debug("No rows found to when trying to update the meta.")
-		return fluxerrors.ErrVideoNotFound
+		err = fluxerrors.ErrVideoNotFound
+		return
 	}
 
 	return nil
