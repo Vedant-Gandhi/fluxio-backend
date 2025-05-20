@@ -23,7 +23,7 @@ func NewDefaultLogger() *DefaultLogger {
 	zLogger := zerolog.New(zLoggerOp)
 
 	// Add timestamp
-	zLogger.With().Timestamp()
+	zLogger = zLogger.With().Timestamp().Logger()
 
 	return &DefaultLogger{
 		zLogger: zLogger,
