@@ -20,7 +20,9 @@ type PgSQL struct {
 func NewPgSQL(cfg PgSQLConfig) (*PgSQL, error) {
 
 	// Configure GORM
-	gormConfig := &gorm.Config{}
+	gormConfig := &gorm.Config{
+		PrepareStmt: true,
+	}
 
 	// Enable SQL logging in development
 	if os.Getenv("GO_ENV") == "development" {

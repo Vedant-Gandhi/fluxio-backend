@@ -15,9 +15,11 @@ import (
 )
 
 func NewServer() {
+	logr := logger.NewDefaultLogger()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		fmt.Println("Error loading config:", err)
+		logr.Error("Failed to load the config.", err)
 		os.Exit(1)
 	}
 
@@ -25,11 +27,9 @@ func NewServer() {
 		URL: cfg.Database.GetDatabaseURL(),
 	})
 	if err != nil {
-		fmt.Println("Error loading database:", err)
+		logr.Error("Error when initialization of database.", err)
 		os.Exit(1)
 	}
-
-	logr := logger.NewDefaultLogger()
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db, logr)
